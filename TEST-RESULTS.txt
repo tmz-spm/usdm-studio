@@ -1,0 +1,70 @@
+USDM Studio v1.7.1 verification — 2026-09-30
+
+Model + graph + review/diff + transformations: 33/33 tests passed (node --test)
+Browser: 18 scenarios passed (Chrome headless)
+Graph browser: 11 scenarios passed (Chrome headless)
+v1.5 browser: 9 scenarios passed (Chrome headless)
+v1.6 browser: 8 scenarios passed (Chrome headless)
+v1.7 browser: 12 scenarios passed (Chrome headless)
+Total: 91 checks passed
+JavaScript page errors: 0
+External network requests during operation: 0
+
+1. PASS Offline startup is an empty, schema-valid document ready for its first requirement
+2. PASS Importing an existing document remains available from the empty startup
+3. PASS Edit persists when switching nodes; shared keyword batch is scoped
+4. PASS Mixed element free labels persist and standard export excludes them
+5. PASS Insert specification before selection, delete, undo and redo
+6. PASS Move requirement across categories and preserve labels
+7. PASS Invalid deletion is blocked and retains last child
+8. PASS JSON syntax/schema errors leave document intact and corrected JSON applies
+9. PASS Relations follow edited requirement ID
+10. PASS Project file reimport restores original title and free labels
+11. PASS Tree drag-and-drop reorders requirements
+12. PASS Browser autosave survives reload with explicit restore
+13. PASS Responsive screen has no horizontal overflow at 1280px
+14. PASS Search commits property edits; label filter finds matching requirements
+15. PASS Batch specification status changes only the chosen stage and removes free labels
+16. PASS Shift selection spans visible rows
+17. PASS New document, category, requirement and two-level group creation stay valid
+18. PASS Schema-valid unusual string values survive unrelated property editing
+19. PASS Graph renders every document node, distinct type styles and branch insertion buttons
+20. PASS Clicking graph nodes edits the right property panel and preserves viewport
+21. PASS Dragging onto a branch changes sibling order
+22. PASS Dragging onto another parent branch moves requirements and retains labels
+23. PASS Branch plus inserts a schema-valid sibling and selects it for editing
+24. PASS A lower requirement can be inserted between a requirement and its specification group
+25. PASS Node drop reparents a specification group
+26. PASS Invalid drag is rejected without changing document or creating history
+27. PASS Dropping directly onto the visible branch line moves a node
+28. PASS Graph multi-select applies a common label to selected nodes
+29. PASS Collapse, focus, zoom, keyboard and pan are usable
+30. PASS v1.5 review filters list unreviewed specs and navigate to graph
+31. PASS Review candidates disappear after property fix, with per-node selection for batch
+32. PASS Quick navigation ranks exact ID first and supports keyboard
+33. PASS Duplicate copies a subtree, regenerates IDs and preserves labels
+34. PASS Discarding pending properties does not discard applied document changes
+35. PASS Current document baseline tracks text and labels without modification-time noise
+36. PASS Loading a baseline never replaces current document, invalid baseline is rejected
+37. PASS Graph find-selection expands ancestors and clears hidden filters
+38. PASS Review UI remains within viewport at desktop width
+39. PASS Operation context wording and selectable node type are visible
+40. PASS Preserve-children deletion is disabled when direct connection violates the schema
+41. PASS Selected intermediate nodes can be removed while reconnecting intact children
+42. PASS Cancelling type conversion does not change data or leave the wrong type in the selector
+43. PASS Requirement to specification shows data loss and preserves text, reason and free labels
+44. PASS Specification can become a requirement with a new compatible destination
+45. PASS Compatible destination hierarchy creation is previewed and collision-free
+46. PASS Cascade deletion still removes descendants and supports undo
+47. PASS Description opens on demand without occupying the workspace header
+48. PASS Each side panel can be compacted, hidden, and restored independently
+49. PASS Header has three sizes and keeps save, view tabs, and restore controls available
+50. PASS Layout changes preserve invalid, unapplied property edits without committing them
+51. PASS Invalid raw JSON remains editable across maximize, panel toggles, and reset
+52. PASS Batch selection and unsubmitted label text survive display changes
+53. PASS Graph uses the same panel controls and resizes without losing nodes or property drafts
+54. PASS Display preferences survive reload and document import and stay out of project JSON
+55. PASS Keyboard focus transfers to a visible restore control when a focused panel closes
+56. PASS All sizes remain usable at desktop and narrow viewport widths
+57. PASS Document preview and print retain the description with the interface hidden
+58. PASS Long project fits the compact and maximized editor without a persistent description
