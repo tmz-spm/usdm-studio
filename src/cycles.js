@@ -1,6 +1,7 @@
 export const CYCLE_OWNERS=new Set(['category','requirementGroup','specificationGroup']);
-export const CYCLE_KINDS={phase:'フェーズ・場面',action:'行動・処理',decision:'分岐',start:'開始',end:'終了'};
+export const CYCLE_KINDS={phase:'フェーズ・場面',action:'行動・処理',state:'状態',screen:'画面',decision:'分岐',start:'開始',end:'終了'};
 export const DETAIL_KINDS={specification:'詳細仕様',behavior:'挙動'};
+export const CYCLE_ROW_TYPES={cycle:{label:'サイクル図',symbol:'↻'},cycleNode:{label:'フロー仕様',symbol:'F'},cycleSpecification:{label:'詳細仕様',symbol:'S'},cycleBehavior:{label:'挙動',symbol:'B'}};
 export const CYCLE_NODE={width:200,height:108};
 const copy=x=>JSON.parse(JSON.stringify(x));
 const uid=prefix=>prefix+'_'+crypto.randomUUID();
@@ -44,7 +45,22 @@ export function connectCycle(d,source,target,label=''){if(!d.nodes.some(n=>n.id=
 export function removeCycleNode(d,id){d.nodes=d.nodes.filter(n=>n.id!==id);d.edges=d.edges.filter(e=>e.source!==id&&e.target!==id);}
 export function cloneCycle(source){const d=copy(source),map=new Map();d.id=uid('cycle');for(const n of d.nodes){const old=n.id;n.id=uid('node');map.set(old,n.id);for(const {item}of detailRows(n.details))item.id=uid('detail');}for(const e of d.edges){e.id=uid('edge');e.source=map.get(e.source);e.target=map.get(e.target);}return d;}
 export function findCycle(cycles,id){for(const [owner,list]of Object.entries(cycles))for(const diagram of list)if(diagram.id===id)return {owner,diagram};return null;}
-export function cycleRows(rows,cycles){return rows.flatMap(r=>(cycles[r.node._key]||[]).map((d,index)=>({node:{_key:'cycle:'+d.id,title:d.title,explanation:d.description},type:'cycle',parent:r.node,field:'cycleDiagrams',index,path:r.path+'/cycleDiagrams/'+index,depth:r.depth+1,diagram:d})));}
+export function cycleRows(rows,cycles){
+  const result=[];
+  for(const owner of rows)for(const [index,d]of (cycles[owner.node._key]||[]).entries()){
+    const add=(parent,field,index,type,key,text,description,selection,label)=>{
+      const row={node:{_key:key,title:text,explanation:description||''},type,parent:parent.node,field,index,path:parent.path+'/'+field+'/'+index,depth:parent.depth+1,diagram:d,ownerKey:owner.node._key,selection,label:label||CYCLE_ROW_TYPES[type].label};
+      result.push(row);return row;
+    };
+    const diagram=add(owner,'cycleDiagrams',index,'cycle','cycle:'+d.id,d.title,d.description,{kind:'diagram'});diagram.childCount=d.nodes.length;
+    for(const [i,n]of d.nodes.entries()){
+      const node=add(diagram,'nodes',i,'cycleNode',`cycle:${d.id}:node:${n.id}`,n.text,n.description,{kind:'node',id:n.id},CYCLE_KINDS[n.kind]);node.childCount=n.details.length;
+      const visit=(items,parent,field)=>items.forEach((item,j)=>{const row=add(parent,field,j,item.kind==='behavior'?'cycleBehavior':'cycleSpecification',`cycle:${d.id}:detail:${item.id}`,item.text,'',{kind:'detail',nodeId:n.id,id:item.id});row.childCount=item.children.length;visit(item.children,row,'children');});
+      visit(n.details,node,'details');
+    }
+  }
+  return result;
+}
 export function pruneCycleOwners(rows,cycles){const owners=new Set(rows.filter(r=>CYCLE_OWNERS.has(r.type)).map(r=>r.node._key)),removed=[];for(const [key,list]of Object.entries(cycles||{}))if(!owners.has(key)){removed.push(...list);delete cycles[key];}return removed;}
 export function cycleGeometry(d){
   const {width:w,height:h}=CYCLE_NODE,nodes=new Map(d.nodes.map(n=>[n.id,n])),counts=new Map();

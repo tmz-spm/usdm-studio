@@ -65,6 +65,21 @@ test('cycle changes appear in document comparison while internal remapping remai
 });
 test('cycle nodes are virtual children in the hierarchy and return edges and self loops remain drawable',()=>{
   const f=fixture(),extra=cycleRows(walk(f.doc),f.cycles),layout=layoutGraph(f.doc,{extraRows:extra});
-  assert.equal(layout.nodes.length,walk(f.doc).length+1);assert.equal(layout.nodes.find(n=>n.type==='cycle').parent._key,f.owner);
+  assert.equal(layout.nodes.length,walk(f.doc).length+5);assert.equal(layout.nodes.find(n=>n.type==='cycle').parent._key,f.owner);
   const geometry=cycleGeometry(f.d);assert.equal(geometry.edges.length,3);assert.ok(geometry.edges.every(e=>!e.path.includes('NaN')&&Number.isFinite(e.labelX)));assert.notEqual(geometry.edges[0].path,geometry.edges[1].path);assert.equal(detailRows(f.a.details).length,2);
+});
+
+test('the hierarchy projects every flow node and nested detail once without copying them into the USDM document',()=>{
+  const f=fixture(),before=saved(f),extra=cycleRows(walk(f.doc),f.cycles),node=extra.find(r=>r.selection.kind==='node'&&r.selection.id===f.a.id),spec=extra.find(r=>r.type==='cycleSpecification'),behavior=extra.find(r=>r.type==='cycleBehavior');
+  assert.equal(node.parent._key,'cycle:'+f.d.id);assert.equal(spec.parent,node.node);assert.equal(behavior.parent,spec.node);assert.equal(behavior.depth,node.depth+2);assert.equal(spec.childCount,1);assert.equal(behavior.childCount,0);assert.equal(behavior.selection.nodeId,f.a.id);
+  assert.deepEqual(saved(f),before);
+  f.a.details[0].text='更新された仕様';assert.equal(cycleRows(walk(f.doc),f.cycles).find(r=>r.node._key===spec.node._key).node.title,'更新された仕様');
+  const copy=structuredClone(f.d);copy.id+='copy';f.cycles[f.owner].push(copy);const projected=cycleRows(walk(f.doc),f.cycles);assert.equal(new Set(projected.map(r=>r.node._key)).size,projected.length);
+  const parsed=parseInput(JSON.stringify(saved(f)));assert.deepEqual(cycleRows(walk(parsed.doc),parsed.cycles).map(r=>r.node._key),projected.map(r=>r.node._key));
+});
+
+test('cycle detail search retains its ancestry and collapse hides descendants without following transition loops',()=>{
+  const f=fixture(),extra=cycleRows(walk(f.doc),f.cycles),detail=extra.find(r=>r.type==='cycleBehavior'),node=extra.find(r=>r.selection.kind==='node'&&r.selection.id===f.a.id);
+  const searched=layoutGraph(f.doc,{extraRows:extra,include:r=>r.node._key===detail.node._key});assert.equal(searched.nodes.at(-1).node._key,detail.node._key);assert.ok(searched.nodes.some(r=>r.node._key===node.node._key));assert.ok(!searched.nodes.some(r=>r.selection?.id===f.b.id));
+  const collapsed=layoutGraph(f.doc,{extraRows:extra,collapsed:new Set([node.node._key])});assert.ok(!collapsed.nodes.some(r=>r.node._key===detail.node._key));assert.equal(collapsed.edges.length,collapsed.nodes.length-1);assert.ok(collapsed.nodes.some(r=>r.selection?.id===f.b.id));
 });

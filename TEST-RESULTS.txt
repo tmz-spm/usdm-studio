@@ -1,13 +1,14 @@
-USDM Studio v1.8.0 verification — 2026-10-01
+USDM Studio v1.9.0 verification — 2026-10-01
 
-Model + graph + review/diff + transformations + cycles: 44/44 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 46/46 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
 v1.6 browser: 8 scenarios passed (Chrome headless)
 v1.7 browser: 12 scenarios passed (Chrome headless)
 Cycle browser: 15 scenarios passed (Chrome headless)
-Total: 117 checks passed
+v1.9 browser: 9 scenarios passed (Chrome headless)
+Total: 128 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -84,3 +85,12 @@ External network requests during operation: 0
 71. PASS Diagram deletion closes only its tab and undo makes the diagram available from the hierarchy again
 72. PASS A diagram can change its owning group while keeping all node specifications and arrows
 73. PASS Cycle UI stays within narrow layouts and the game-flow editor is visually reviewable
+74. PASS Tree graph shows diagram, flow specification and recursively nested specifications and behaviors
+75. PASS Both trees can collapse a flow specification or nested detail without hiding unrelated diagrams
+76. PASS Selecting a nested graph or explorer item opens the exact diagram property and reuses its tab
+77. PASS Structure and content embeds cycle specifications under each owner and includes diagrams without requirements
+78. PASS Search and quick jump find nested cycle specifications and owner labels filter their branches
+79. PASS State and screen nodes expose incoming and outgoing transitions and preserve details on kind changes
+80. PASS Saving and reopening rebuilds the same visible hierarchy from one copy of each specification
+81. PASS Deleting a cycle specification updates both trees and structure view and undo restores the entire branch
+82. PASS Hierarchy and content views remain usable at desktop and narrow widths
