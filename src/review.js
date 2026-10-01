@@ -1,4 +1,5 @@
 import {walk,TYPES,titleOf,clone,selectedRoots} from './model.js';
+import {cloneCycle} from './cycles.js';
 
 export function reviewDocument(doc) {
   const rs=walk(doc),issues=[];
@@ -29,13 +30,14 @@ export function reviewDocument(doc) {
   return issues;
 }
 
-export function duplicateNodes(doc,labels,keys,{resetVerified=true}={}) {
+export function duplicateNodes(doc,labels,keys,{resetVerified=true,cycles={}}={}) {
   const roots=selectedRoots(doc,keys);if(!roots.length)throw Error('複製する要素を選んでください。文書全体は複製できません。');
   const ids=new Set(walk(doc).map(r=>r.node.id).filter(Boolean));
   const groupNames=new Map();for(const r of walk(doc).filter(r=>r.type.endsWith('Group')||r.type==='category'))(groupNames.get(r.type)||groupNames.set(r.type,new Set()).get(r.type)).add(r.node.name);
   const added=[];
   function copy(n,type){
     const oldKey=n._key;n._key=crypto.randomUUID();if(labels[oldKey]?.length)labels[n._key]=clone(labels[oldKey]);
+    if(cycles[oldKey]?.length)cycles[n._key]=cycles[oldKey].map(cloneCycle);
     if(n.id){const base=n.id+'_copy';let id=base,i=2;while(ids.has(id))id=base+i++;n.id=id;ids.add(id);}
     if(n.name){const names=groupNames.get(type)||new Set();const base=n.name.replace(/^＜|＞$/g,'');let name=`＜${base}（コピー）＞`,i=2;while(names.has(name))name=`＜${base}（コピー${i++}）＞`;n.name=name;names.add(name);groupNames.set(type,names);}
     if(type==='specification'&&resetVerified)n.verified=[false,false,false];
@@ -47,7 +49,7 @@ export function duplicateNodes(doc,labels,keys,{resetVerified=true}={}) {
 
 const stable=v=>v===undefined?'∅':JSON.stringify(sortValue(v));
 function sortValue(v){if(Array.isArray(v))return v.map(sortValue);if(v&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().map(k=>[k,sortValue(v[k])]));return v;}
-function records(doc,labels){
+function records(doc,labels,cycles={}){
   const result=new Map(),byNode=new Map(),counts=new Map();
   for(const r of walk(doc)){
     const parent=byNode.get(r.parent)?.identity||'',n=r.node;
@@ -58,13 +60,14 @@ function records(doc,labels){
     const own=Object.fromEntries(Object.entries(n).filter(([k])=>k!=='_key'&&!(k in TYPES[r.type].child)));
     if(r.type==='document'&&own.metadata){own.metadata={...own.metadata};delete own.metadata.modified;if(!Object.keys(own.metadata).length)delete own.metadata;}
     own['自由ラベル']=labels[n._key]||[];
+    if(cycles[n._key]?.length)own['サイクル図']=cycles[n._key];
     const rec={...r,identity,parentIdentity:parent,own,display:n.id||titleOf(n),parentTitle:r.parent?titleOf(r.parent):''};
     result.set(identity,rec);byNode.set(n,rec);
   }
   return result;
 }
 export function compareDocuments(before,after) {
-  const old=records(before.doc,before.labels||{}),now=records(after.doc,after.labels||{}),diff=[];
+  const old=records(before.doc,before.labels||{},before.cycles||{}),now=records(after.doc,after.labels||{},after.cycles||{}),diff=[];
   const shared=new Set([...old.keys()].filter(k=>now.has(k)));
   const ranks=map=>{
     const parents=new Map(),result=new Map();

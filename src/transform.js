@@ -1,5 +1,6 @@
 import schema from '../schema/document.schema.json';
 import {TYPES,clone,walk,titleOf,createNode,uniqueId,pruneOptional,validate} from './model.js';
+import {CYCLE_OWNERS,pruneCycleOwners} from './cycles.js';
 
 const def=t=>schema.definitions[t[0].toUpperCase()+t.slice(1)];
 const idPattern=/^[A-Za-z][A-Za-z0-9_-]*$/;
@@ -34,7 +35,8 @@ function complete(before,after,details={}){
   let relationsRemoved=0;
   for(const [field,source,target,gone]of [['requirementRelations','sourceId','targetId',goneReq],['specificationGroupRelations','sourceName','targetName',goneGroups]])if(after.doc[field]){const original=after.doc[field];after.doc[field]=original.filter(r=>!gone.has(r[source])&&!gone.has(r[target]));relationsRemoved+=original.length-after.doc[field].length;}
   pruneOptional(after.doc);const check=validate(after.doc);if(check.errors.length)throw Error('この変更では必須の階層または子要素が不足します。所属先・削除範囲を変更してください。\n'+check.errors.join('\n'));
-  return {...details,state:after,removed,relationsRemoved,labelsRemoved:removed.filter(r=>before.labels[r.key]?.length).map(r=>({...r,labels:before.labels[r.key]}))};
+  const cyclesRemoved=pruneCycleOwners(now,after.cycles);
+  return {...details,state:after,removed,relationsRemoved,cyclesRemoved,labelsRemoved:removed.filter(r=>before.labels[r.key]?.length).map(r=>({...r,labels:before.labels[r.key]}))};
 }
 export function planConversion(state,key,targetType,parentKey){
   const before=clone(state),after=clone(state),source=rowOf(after.doc,key),old=clone(source.node);
@@ -95,6 +97,11 @@ export function planPreserveDelete(state,keys){
   const before=clone(state),after=clone(state),info=preserveInfo(after.doc,keys);
   const options=preserveDestinations(after.doc,keys);
   if(!options.direct)throw Error('削除禁止：選択ノードの親は、残す子の種類を直接持てません。USDMスキーマに適合する階層になる場合だけ実行できます。');
+  for(const r of info.selected)if(after.cycles?.[r.node._key]?.length){
+    let parent=info.rs.find(x=>x.node===r.parent);while(parent&&info.set.has(parent.node._key))parent=info.rs.find(x=>x.node===parent.parent);
+    if(!parent||!CYCLE_OWNERS.has(parent.type))throw Error('削除禁止：サイクル図を残す子として直接つなぐには、親がカテゴリまたはグループである必要があります。');
+    (after.cycles[parent.node._key]??=[]).push(...after.cycles[r.node._key]);delete after.cycles[r.node._key];
+  }
   const targets=new Map(info.rs.filter(r=>!info.set.has(r.node._key)).map(r=>[r.node._key,{}]));
   const append=(parent,n)=>{const field=Object.entries(TYPES[parent.type].child).find(([,t])=>t===n.type)?.[0];if(!field)throw Error('この階層には子を接続できません。');(targets.get(parent.node._key)[field]??=[]).push(n.node);};
   for(const parent of info.rs.filter(r=>!info.set.has(r.node._key)))for(const child of info.children.get(parent.node._key)){

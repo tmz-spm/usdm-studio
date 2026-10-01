@@ -1,5 +1,6 @@
 import Ajv from 'ajv';
 import schema from '../schema/document.schema.json';
+import {CYCLE_OWNERS,validateCycleMap} from './cycles.js';
 
 export const TYPES = {
   document: {label:'文書', child:{categories:'category'}},
@@ -52,12 +53,12 @@ export function validate(doc) {
 export function parseInput(text) {
   const raw=JSON.parse(text.replace(/^\uFEFF/,''));
   const project=raw?.format==='usdm-studio-project';
-  if(project && raw.projectVersion!==1) throw Error('未対応のプロジェクト形式です。');
+  if(project && ![1,2].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
   const d=project?raw.document:raw;
   // Validate the original, before removing any internal keys.
   if(!check(d)) throw Error((check.errors||[]).map(e=>`${e.instancePath||'/'} ${e.message}`).join('\n'));
   const result=validate(d); if(result.errors.length) throw Error(result.errors.join('\n'));
-  const doc=hydrate(d), labels={};
+  const doc=hydrate(d), labels={},cycles={};
   if(project) {
     if(!raw.labels||typeof raw.labels!=='object'||Array.isArray(raw.labels)) throw Error('labels はパスとラベル配列のオブジェクトにしてください。');
     const byPath=new Map(walk(doc).map(x=>[x.path,x]));
@@ -65,12 +66,19 @@ export function parseInput(text) {
       if(!byPath.has(p)||!Array.isArray(ls)||ls.some(x=>typeof x!=='string'||!x.trim())) throw Error(`自由ラベルの参照が不正です: ${p}`);
       labels[byPath.get(p).node._key]=[...new Set(ls)];
     }
+    if(raw.projectVersion===2){
+      if(!raw.cycleDiagrams||typeof raw.cycleDiagrams!=='object'||Array.isArray(raw.cycleDiagrams))throw Error('cycleDiagrams は所属先とサイクル図配列のオブジェクトにしてください。');
+      for(const [path,diagrams]of Object.entries(raw.cycleDiagrams)){const owner=byPath.get(path);if(!owner||!CYCLE_OWNERS.has(owner.type))throw Error('サイクル図の所属先が不正です: '+path);cycles[owner.node._key]=diagrams;}
+      validateCycleMap(walk(doc),cycles);
+    }else if(Object.hasOwn(raw,'cycleDiagrams'))throw Error('サイクル図を含むプロジェクトは projectVersion を2にしてください。');
   }
-  return {doc,labels};
+  return {doc,labels,cycles};
 }
-export function projectData(doc,labels) {
-  const paths={}; for(const x of walk(doc)) if(labels[x.node._key]?.length) paths[x.path]=labels[x.node._key];
-  return {format:'usdm-studio-project',projectVersion:1,document:canonical(doc),labels:paths};
+export function projectData(doc,labels,cycles={}) {
+  const rows=walk(doc),paths={},diagrams={};validateCycleMap(rows,cycles);
+  for(const x of rows){if(labels[x.node._key]?.length)paths[x.path]=labels[x.node._key];if(cycles[x.node._key]?.length)diagrams[x.path]=clone(cycles[x.node._key]);}
+  const hasCycles=Object.keys(diagrams).length>0;
+  return {format:'usdm-studio-project',projectVersion:hasCycles?2:1,document:canonical(doc),labels:paths,...(hasCycles?{cycleDiagrams:diagrams}:{})};
 }
 export function uniqueId(doc,prefix) {
   const ids=new Set(walk(doc).map(x=>x.node.id)); let i=1;
@@ -133,14 +141,17 @@ export function insertSubRequirementOnEdge(doc,targetKey) {
   return sub._key;
 }
 export class Store {
-  constructor(doc,labels={}) {this.doc=doc;this.labels=labels;this.past=[];this.future=[];}
-  snapshot(){return clone({doc:this.doc,labels:this.labels});}
+  constructor(doc,labels={},cycles={}) {this.doc=doc;this.labels=labels;this.cycles=cycles;this.past=[];this.future=[];}
+  snapshot(){return clone({doc:this.doc,labels:this.labels,cycles:this.cycles});}
   transaction(fn) {
     const before=this.snapshot();
     try {
       fn(this); pruneOptional(this.doc);
       const result=validate(this.doc);
       if(result.errors.length) throw Error('変更できません。必須の子要素が空になる場合はグループごと操作してください。\n'+result.errors.join('\n'));
+      const owners=new Set(walk(this.doc).filter(r=>CYCLE_OWNERS.has(r.type)).map(r=>r.node._key));
+      for(const key of Object.keys(before.cycles))if(!owners.has(key))delete this.cycles[key];
+      validateCycleMap(walk(this.doc),this.cycles);
       this.doc.metadata??={};this.doc.metadata.modified=new Date().toISOString();
       this.past.push(before);if(this.past.length>100)this.past.shift();this.future=[];
     } catch(e){Object.assign(this,before);throw e;}

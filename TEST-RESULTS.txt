@@ -1,12 +1,13 @@
-USDM Studio v1.7.1 verification — 2026-09-30
+USDM Studio v1.8.0 verification — 2026-10-01
 
-Model + graph + review/diff + transformations: 33/33 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 44/44 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
 v1.6 browser: 8 scenarios passed (Chrome headless)
 v1.7 browser: 12 scenarios passed (Chrome headless)
-Total: 91 checks passed
+Cycle browser: 15 scenarios passed (Chrome headless)
+Total: 117 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -68,3 +69,18 @@ External network requests during operation: 0
 56. PASS All sizes remain usable at desktop and narrow viewport widths
 57. PASS Document preview and print retain the description with the interface hidden
 58. PASS Long project fits the compact and maximized editor without a persistent description
+59. PASS A group creates a cycle diagram with its own tab while keeping the hierarchy tab
+60. PASS Game phases and decisions can be placed and connected with conditional return paths and self loops
+61. PASS Each flow node owns detailed specifications and behaviors with further nested children
+62. PASS Details can change parents while retaining their children and support undo
+63. PASS Dragging changes node placement and connected arrows, with undo and redo
+64. PASS Multiple cycle diagrams have independent tabs and reopening from the tree graph reuses the tab
+65. PASS Existing return arrows can be selected directly on the canvas and their conditions edited
+66. PASS Invalid detail drafts survive layout changes and block tab switching without corrupting saved data
+67. PASS Project save and reload preserve all diagrams, geometry, nested behaviors and free labels
+68. PASS Whole-project JSON editing includes cycles, rejects broken connections and preserves diagrams on standard edits
+69. PASS Standard export explains omitted diagrams while document preview includes detailed behavior
+70. PASS Node deletion also removes its nested details and incident arrows, and undo restores the whole node
+71. PASS Diagram deletion closes only its tab and undo makes the diagram available from the hierarchy again
+72. PASS A diagram can change its owning group while keeping all node specifications and arrows
+73. PASS Cycle UI stays within narrow layouts and the game-flow editor is visually reviewable

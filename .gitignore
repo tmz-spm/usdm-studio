@@ -6,3 +6,4 @@ tests/transform.bundle.mjs
 dist/
 test-results/
 /*.png
+tests/cycles.bundle.mjs
