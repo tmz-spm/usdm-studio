@@ -43,6 +43,36 @@ export function createCycleNode(kind='phase',x=80,y=100){if(!Object.hasOwn(CYCLE
 export function createDetail(kind='specification'){if(!Object.hasOwn(DETAIL_KINDS,kind))throw Error('詳細の種類が不正です。');return {id:uid('detail'),kind,text:'新しい'+DETAIL_KINDS[kind],children:[]};}
 export function connectCycle(d,source,target,label=''){if(!d.nodes.some(n=>n.id===source)||!d.nodes.some(n=>n.id===target))throw Error('接続するノードを選択してください。');const edge={id:uid('edge'),source,target,label};d.edges.push(edge);return edge;}
 export function removeCycleNode(d,id){d.nodes=d.nodes.filter(n=>n.id!==id);d.edges=d.edges.filter(e=>e.source!==id&&e.target!==id);}
+export function freeCyclePosition(d,x,y){
+  const {width:w,height:h}=CYCLE_NODE,clamp=v=>Math.max(20,Math.min(20000,Math.round(v)));
+  const free=(x,y)=>!d.nodes.some(n=>x<n.x+w+24&&x+w+24>n.x&&y<n.y+h+24&&y+h+24>n.y);
+  for(let step=0;step<=150;step++)for(const [dx,dy]of [[0,step*(h+50)],[0,-step*(h+50)],[step*(w+60),0],[-step*(w+60),0]]){const px=clamp(x+dx),py=clamp(y+dy);if(free(px,py))return {x:px,y:py};}
+  for(let py=20;py<=20000;py+=h+50)for(let px=20;px<=20000;px+=w+60)if(free(px,py))return {x:px,y:py};
+  throw Error('ノードを置く空きがありません。図を分けてください。');
+}
+export function insertCycleOnEdge(d,edgeId,{kind='phase',text}={}){
+  const e=d.edges.find(e=>e.id===edgeId);if(!e)throw Error('挿入先の矢印がありません。');
+  const geometry=cycleGeometry(d).edges.find(x=>x.id===edgeId),position=freeCyclePosition(d,geometry.insertX-CYCLE_NODE.width/2,geometry.insertY-CYCLE_NODE.height/2),n=createCycleNode(kind,position.x,position.y);
+  if(text!==undefined)n.text=text;
+  const target=e.target;d.nodes.splice(d.nodes.findIndex(n=>n.id===e.source)+1,0,n);e.target=n.id;
+  const next=connectCycle(d,n.id,target);return {node:n,edge:next};
+}
+export function insertCycleHierarchy(rows,cycles,key,{position='after',kind,text}={}){
+  const r=cycleRows(rows,cycles).find(r=>r.node._key===key);if(!r)throw Error('挿入先の項目がありません。');
+  if(!['before','after','wrap'].includes(position)||position==='wrap'&&r.selection.kind!=='detail')throw Error('この階層にはその方法で挿入できません。');
+  if(r.type==='cycle'){
+    const d=createCycle(text),list=cycles[r.ownerKey];list.splice(list.findIndex(x=>x.id===r.diagram.id)+(position==='after'?1:0),0,d);return {diagramId:d.id,selection:{kind:'diagram'}};
+  }
+  const d=r.diagram;
+  if(r.selection.kind==='node'){
+    const index=d.nodes.findIndex(n=>n.id===r.selection.id),reference=d.nodes[index],point=freeCyclePosition(d,reference.x+(position==='after'?260:-260),reference.y),n=createCycleNode(kind||reference.kind,point.x,point.y);
+    if(text!==undefined)n.text=text;d.nodes.splice(index+(position==='after'?1:0),0,n);return {diagramId:d.id,selection:{kind:'node',id:n.id}};
+  }
+  const n=d.nodes.find(n=>n.id===r.selection.nodeId),row=detailRows(n.details).find(x=>x.item.id===r.selection.id),item=createDetail(kind||row.item.kind);
+  if(text!==undefined)item.text=text;
+  if(position==='wrap'){item.children=[row.item];row.list.splice(row.index,1,item);}else row.list.splice(row.index+(position==='after'?1:0),0,item);
+  return {diagramId:d.id,selection:{kind:'detail',nodeId:n.id,id:item.id}};
+}
 export function cloneCycle(source){const d=copy(source),map=new Map();d.id=uid('cycle');for(const n of d.nodes){const old=n.id;n.id=uid('node');map.set(old,n.id);for(const {item}of detailRows(n.details))item.id=uid('detail');}for(const e of d.edges){e.id=uid('edge');e.source=map.get(e.source);e.target=map.get(e.target);}return d;}
 export function findCycle(cycles,id){for(const [owner,list]of Object.entries(cycles))for(const diagram of list)if(diagram.id===id)return {owner,diagram};return null;}
 export function cycleRows(rows,cycles){
@@ -75,7 +105,7 @@ export function cycleGeometry(d){
     else {p0=[a.x+w,a.y+h/2];p3=[b.x,b.y+h/2];const bend=Math.max(12,Math.abs(p3[0]-p0[0])*.45);p1=[p0[0]+bend,p0[1]-index*70];p2=[p3[0]-bend,p3[1]-index*70];}
     const mid=[0,1].map(k=>p0[k]/8+3*p1[k]/8+3*p2[k]/8+p3[k]/8);
     const shortForward=a!==b&&b.x>=a.x+w&&b.x-(a.x+w)<140&&Math.abs(a.y-b.y)<=h+30;
-    return {...e,path:`M${p0} C${p1} ${p2} ${p3}`,labelX:mid[0],labelY:shortForward?Math.max(12,Math.min(a.y,b.y)-18):mid[1]-9};
+    return {...e,path:`M${p0} C${p1} ${p2} ${p3}`,insertX:mid[0],insertY:mid[1],labelX:mid[0],labelY:shortForward?Math.max(12,Math.min(a.y,b.y)-18):mid[1]-20};
   }).filter(Boolean);
   return {edges,width:Math.max(1000,...d.nodes.map(n=>n.x+w+220)),height:Math.max(620,...d.nodes.map(n=>n.y+h+180))};
 }

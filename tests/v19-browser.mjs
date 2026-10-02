@@ -39,7 +39,7 @@ try{
   await check('Tree graph shows diagram, flow specification and recursively nested specifications and behaviors',async()=>{
     await tab('graph');await expect(page.locator('.graph-node.cycle')).toHaveCount(3);await expect(page.locator('.graph-node.cycleNode')).toHaveCount(4);await expect(page.locator('.graph-node.cycleSpecification')).toHaveCount(4);await expect(page.locator('.graph-node.cycleBehavior')).toHaveCount(1);
     const keys=[key(diagram),key(diagram,a),key(diagram,a,detail),key(diagram,a,behavior),key(diagram,a,child)];let last=-1;
-    for(const k of keys){const x=await graph(k).evaluate(el=>parseFloat(el.style.left));assert.ok(x>last);last=x;assert.equal(await graph(k).getAttribute('draggable'),'false');assert.equal(await graph(k).getAttribute('data-graph-drop'),null);assert.equal(await page.locator(`.graph-edge-plus[data-target="${k}"]`).count(),0);}
+    for(const k of keys){const x=await graph(k).evaluate(el=>parseFloat(el.style.left));assert.ok(x>last);last=x;assert.equal(await graph(k).getAttribute('draggable'),'false');assert.equal(await graph(k).getAttribute('data-graph-drop'),null);await expect(page.locator(`.graph-edge-plus[data-target="${k}"]`)).toHaveCount(1);}
     await expect(graph(key(diagram,a,detail))).toContainText('詳細仕様');await expect(graph(key(diagram,a,behavior))).toContainText('挙動');await expect(graph(key(recovery,recoveryNode,detail))).toContainText('参加枠');
   });
   await check('Both trees can collapse a flow specification or nested detail without hiding unrelated diagrams',async()=>{

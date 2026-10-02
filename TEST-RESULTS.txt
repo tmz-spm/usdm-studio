@@ -1,6 +1,6 @@
-USDM Studio v1.9.0 verification — 2026-10-01
+USDM Studio v1.10.0 verification — 2026-10-02
 
-Model + graph + review/diff + transformations + cycles: 46/46 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 49/49 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
@@ -8,7 +8,8 @@ v1.6 browser: 8 scenarios passed (Chrome headless)
 v1.7 browser: 12 scenarios passed (Chrome headless)
 Cycle browser: 15 scenarios passed (Chrome headless)
 v1.9 browser: 9 scenarios passed (Chrome headless)
-Total: 128 checks passed
+v1.10 browser: 9 scenarios passed (Chrome headless)
+Total: 140 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -94,3 +95,12 @@ External network requests during operation: 0
 80. PASS Saving and reopening rebuilds the same visible hierarchy from one copy of each specification
 81. PASS Deleting a cycle specification updates both trees and structure view and undo restores the entire branch
 82. PASS Hierarchy and content views remain usable at desktop and narrow widths
+83. PASS A hierarchy branch to a cycle diagram has a working plus with insertion after selected by default
+84. PASS Hierarchy plus adds neighboring flow specifications and wraps existing details without losing their children
+85. PASS Cycle arrow plus inserts between endpoints and retains the original condition with atomic undo and redo
+86. PASS Focused explorer reveals a hidden sidebar and shows only the current diagram independently of document filters
+87. PASS Focused search and collapse follow the active diagram tab and preserve independent per-diagram views
+88. PASS Explorer scope, search and folding preserve invalid property drafts without saving or losing them
+89. PASS Focused explorer adds into the current diagram and reflects deletion and undo in its outline
+90. PASS Project round-trip preserves insertions while keeping explorer preferences outside the saved JSON
+91. PASS Insertion buttons and focused explorer stay usable across layout sizes

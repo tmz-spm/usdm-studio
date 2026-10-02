@@ -64,7 +64,7 @@ try{
   });
   await check('Existing return arrows can be selected directly on the canvas and their conditions edited',async()=>{
     await action('cycle-fit').click();const d=diagrams(await saved()).find(d=>d.id===first),edge=d.edges.find(e=>e.source===c&&e.target===a);
-    const point=await page.locator(`[data-cycle-edge="${edge.id}"] .cycle-edge-hit`).evaluate(el=>{const p=el.getPointAtLength(el.getTotalLength()/2),m=el.getScreenCTM();return {x:m.a*p.x+m.c*p.y+m.e,y:m.b*p.x+m.d*p.y+m.f};});
+    const point=await page.locator(`[data-cycle-edge="${edge.id}"] .cycle-edge-hit`).evaluate(el=>{const p=el.getPointAtLength(el.getTotalLength()*.3),m=el.getScreenCTM();return {x:m.a*p.x+m.c*p.y+m.e,y:m.b*p.x+m.d*p.y+m.f};});
     await page.mouse.click(point.x,point.y);await expect(field('label')).toHaveValue('再戦する');await field('label').fill('再戦を選んだ場合');await page.keyboard.press('Control+Enter');assert.equal(diagrams(await saved()).find(d=>d.id===first).edges.find(e=>e.id===edge.id).label,'再戦を選んだ場合');
   });
   await check('Invalid detail drafts survive layout changes and block tab switching without corrupting saved data',async()=>{

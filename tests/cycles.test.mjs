@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {hydrate,walk,Store,projectData,parseInput,validate,moveNodes,removeNodes} from './model.bundle.mjs';
-import {createCycle,createCycleNode,createDetail,connectCycle,removeCycleNode,detailRows,validateCycleMap,cycleRows,cycleGeometry} from './cycles.bundle.mjs';
+import {createCycle,createCycleNode,createDetail,connectCycle,removeCycleNode,detailRows,validateCycleMap,cycleRows,cycleGeometry,insertCycleOnEdge,insertCycleHierarchy,CYCLE_NODE} from './cycles.bundle.mjs';
 import {duplicateNodes,compareDocuments} from './review.bundle.mjs';
 import {planConversion,planPreserveDelete} from './transform.bundle.mjs';
 import {layoutGraph} from './graph.bundle.mjs';
@@ -82,4 +82,27 @@ test('cycle detail search retains its ancestry and collapse hides descendants wi
   const f=fixture(),extra=cycleRows(walk(f.doc),f.cycles),detail=extra.find(r=>r.type==='cycleBehavior'),node=extra.find(r=>r.selection.kind==='node'&&r.selection.id===f.a.id);
   const searched=layoutGraph(f.doc,{extraRows:extra,include:r=>r.node._key===detail.node._key});assert.equal(searched.nodes.at(-1).node._key,detail.node._key);assert.ok(searched.nodes.some(r=>r.node._key===node.node._key));assert.ok(!searched.nodes.some(r=>r.selection?.id===f.b.id));
   const collapsed=layoutGraph(f.doc,{extraRows:extra,collapsed:new Set([node.node._key])});assert.ok(!collapsed.nodes.some(r=>r.node._key===detail.node._key));assert.equal(collapsed.edges.length,collapsed.nodes.length-1);assert.ok(collapsed.nodes.some(r=>r.selection?.id===f.b.id));
+});
+
+test('inserting on forward, return and self-loop arrows preserves conditions and details and undoes atomically',()=>{
+  for(const index of [0,1,2]){
+    const f=fixture(),s=new Store(f.doc,f.labels,f.cycles),before=s.snapshot(),original=structuredClone(f.d.edges[index]);let result;
+    s.transaction(()=>{result=insertCycleOnEdge(f.d,original.id,{kind:'state',text:'準備を確認する'});});
+    assert.equal(f.d.nodes.length,3);assert.equal(f.d.edges.length,4);assert.equal(f.d.edges[index].id,original.id);assert.equal(f.d.edges[index].source,original.source);assert.equal(f.d.edges[index].target,result.node.id);assert.equal(f.d.edges[index].label,original.label);assert.equal(result.edge.source,result.node.id);assert.equal(result.edge.target,original.target);assert.equal(result.edge.label,'');
+    for(const n of [f.a,f.b])assert.ok(result.node.x>=n.x+CYCLE_NODE.width||n.x>=result.node.x+CYCLE_NODE.width||result.node.y>=n.y+CYCLE_NODE.height||n.y>=result.node.y+CYCLE_NODE.height);
+    assert.deepEqual(f.a.details,before.cycles[f.owner][0].nodes[0].details);const after=s.snapshot();s.undo();assert.deepEqual(s.snapshot(),before);s.redo();assert.deepEqual(s.snapshot(),after);
+  }
+});
+
+test('hierarchy plus inserts neighboring diagrams and flow nodes and can wrap a detail without losing its descendants',()=>{
+  const f=fixture(),s=new Store(f.doc,f.labels,f.cycles),rows=()=>walk(s.doc);let result;
+  s.transaction(()=>{result=insertCycleHierarchy(rows(),s.cycles,'cycle:'+f.d.id,{text:'別のサイクル'});});assert.equal(s.cycles[f.owner][1].id,result.diagramId);assert.equal(s.cycles[f.owner][0].id,f.d.id);
+  s.transaction(()=>{result=insertCycleHierarchy(rows(),s.cycles,`cycle:${f.d.id}:node:${f.b.id}`,{position:'before',kind:'screen',text:'結果画面'});});assert.equal(f.d.nodes[1].id,result.selection.id);assert.equal(f.d.nodes[2].id,f.b.id);assert.equal(f.d.edges.length,3);
+  const old=structuredClone(f.a.details[0]);s.transaction(()=>{result=insertCycleHierarchy(rows(),s.cycles,`cycle:${f.d.id}:detail:${old.id}`,{position:'wrap',kind:'behavior',text:'参加を確認する'});});assert.equal(f.a.details[0].id,result.selection.id);assert.deepEqual(f.a.details[0].children,[old]);assert.equal(validateCycleMap(rows(),s.cycles),true);
+});
+
+test('invalid cycle insertions leave no partial node, broken connection or undo entry',()=>{
+  for(const change of [f=>insertCycleOnEdge(f.d,'missing'),f=>insertCycleOnEdge(f.d,f.d.edges[0].id,{text:''}),f=>insertCycleHierarchy(walk(f.doc),f.cycles,'cycle:'+f.d.id,{position:'wrap'}),f=>insertCycleHierarchy(walk(f.doc),f.cycles,`cycle:${f.d.id}:detail:${f.a.details[0].id}`,{text:''})]){
+    const f=fixture(),s=new Store(f.doc,f.labels,f.cycles),before=s.snapshot();assert.throws(()=>s.transaction(()=>change(f)));assert.deepEqual(s.snapshot(),before);assert.equal(s.past.length,0);
+  }
 });
