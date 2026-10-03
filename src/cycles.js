@@ -1,7 +1,8 @@
 export const CYCLE_OWNERS=new Set(['category','requirementGroup','specificationGroup']);
-export const CYCLE_KINDS={phase:'フェーズ・場面',action:'行動・処理',state:'状態',screen:'画面',decision:'分岐',start:'開始',end:'終了'};
-export const DETAIL_KINDS={specification:'詳細仕様',behavior:'挙動'};
-export const CYCLE_ROW_TYPES={cycle:{label:'サイクル図',symbol:'↻'},cycleNode:{label:'フロー仕様',symbol:'F'},cycleSpecification:{label:'詳細仕様',symbol:'S'},cycleBehavior:{label:'挙動',symbol:'B'}};
+export const CYCLE_KINDS={phase:'フェーズ・場面',input:'プレイヤー入力',event:'イベント',action:'行動・処理',state:'状態',screen:'画面',decision:'分岐',reference:'別フロー参照',start:'開始',end:'終了'};
+export const CYCLE_HINTS={input:'プレイヤーが行う操作や選択を書きます。受付できる場面、長押し、入力がない場合の進行などは下の詳細仕様に記述できます。',event:'時間切れ・拠点陥落など、ゲーム内で起きる出来事を書きます。発生条件や周期は下の詳細仕様に記述できます。',reference:'別の図で説明する仕組みを参照します。参照先の内容は複製せず、その図のタブで編集します。',decision:'勝利／敗北、続行／撤退など、行き先ごとの意味を矢印に書きます。T／Fに限定する必要はありません。'};
+export const DETAIL_KINDS={specification:'詳細仕様',behavior:'挙動',rule:'ルール'};
+export const CYCLE_ROW_TYPES={cycle:{label:'サイクル図',symbol:'↻'},cycleNode:{label:'フロー仕様',symbol:'F'},cycleSpecification:{label:'詳細仕様',symbol:'S'},cycleBehavior:{label:'挙動',symbol:'B'},cycleRule:{label:'ルール',symbol:'R'}};
 export const CYCLE_NODE={width:200,height:108};
 const copy=x=>JSON.parse(JSON.stringify(x));
 const uid=prefix=>prefix+'_'+crypto.randomUUID();
@@ -15,23 +16,28 @@ export function detailRows(details){
   const rows=[];const visit=(list,parent=null,depth=0)=>list.forEach((item,index)=>{rows.push({item,list,index,parent,depth});visit(item.children,item,depth+1);});
   visit(details);return rows;
 }
+export function detailHolder(d,nodeId=''){const holder=nodeId?d.nodes.find(n=>n.id===nodeId):d;if(!holder)throw Error('詳細の所属先がありません。');return holder;}
+export function cycleRules(d){return [{nodeId:'',scope:'図全体',details:d.details||[]},...d.nodes.map(n=>({nodeId:n.id,scope:n.text,details:n.details}))].flatMap(h=>detailRows(h.details).filter(r=>r.item.kind==='rule').map(r=>({...r,nodeId:h.nodeId,scope:h.scope})));}
+export function cycleFormatVersion(cycles){return Object.values(cycles).flat().some(d=>Object.hasOwn(d,'details')||d.nodes.some(n=>['input','event','reference'].includes(n.kind)||detailRows(n.details).some(r=>r.item.kind==='rule')))?3:2;}
+export function cycleReferenceIssues(cycles){const diagrams=Object.values(cycles).flat(),ids=new Set(diagrams.map(d=>d.id));return diagrams.flatMap(d=>d.nodes.filter(n=>n.kind==='reference'&&(!n.reference||!ids.has(n.reference))).map(n=>`「${d.title}」の「${n.text}」：${n.reference?'参照先の図が見つかりません':'参照先の図が未設定です'}。`));}
 export function validateCycleMap(rows,cycles){
   if(!object(cycles))throw Error('サイクル図の保存形式が不正です。');
   const owners=new Set(rows.filter(r=>CYCLE_OWNERS.has(r.type)).map(r=>r.node._key)),diagramIds=new Set();
   for(const [owner,diagrams] of Object.entries(cycles)){
     if(!owners.has(owner)||!Array.isArray(diagrams))throw Error('サイクル図の所属先はカテゴリ・要求グループ・仕様グループにしてください。');
     for(const d of diagrams){
-      fields(d,['id','title','description','nodes','edges']);id(d.id,diagramIds,'サイクル図');string(d.title,'図の名前',true);string(d.description,'図の説明');
+      fields(d,['id','title','description','nodes','edges'],['details']);id(d.id,diagramIds,'サイクル図');string(d.title,'図の名前',true);string(d.description,'図の説明');
       if(!Array.isArray(d.nodes)||!Array.isArray(d.edges))throw Error('ノードと矢印は配列にしてください。');
       const nodes=new Set(),edges=new Set(),details=new Set();
+      const checkDetails=items=>{if(!Array.isArray(items))throw Error('詳細仕様・挙動・ルールは配列にしてください。');const queue=[...items];while(queue.length){const item=queue.pop();fields(item,['id','kind','text','children'],[],'詳細仕様・挙動・ルール');id(item.id,details,'詳細');if(!Object.hasOwn(DETAIL_KINDS,item.kind))throw Error('詳細の種類が不正です。');string(item.text,'詳細の内容',true);if(!Array.isArray(item.children))throw Error('詳細の子要素は配列にしてください。');queue.push(...item.children);}};
+      if(Object.hasOwn(d,'details'))checkDetails(d.details);
       for(const n of d.nodes){
-        fields(n,['id','kind','text','description','x','y','details'],[],'フローノード');id(n.id,nodes,'ノード');
+        fields(n,['id','kind','text','description','x','y','details'],['reference'],'フローノード');id(n.id,nodes,'ノード');
         if(!Object.hasOwn(CYCLE_KINDS,n.kind))throw Error('ノードの種類が不正です。');
+        if(Object.hasOwn(n,'reference')&&(n.kind!=='reference'||typeof n.reference!=='string'||n.reference&&!/^[-A-Za-z0-9_]+$/.test(n.reference)))throw Error('参照先は別フロー参照ノードの図IDにしてください。');
         string(n.text,'大まかな仕様・場面',true);string(n.description,'ノードの説明');
         if(![n.x,n.y].every(v=>Number.isFinite(v)&&v>=0&&v<=20000))throw Error('ノードの座標は0〜20000の数値にしてください。');
-        if(!Array.isArray(n.details))throw Error('詳細仕様・挙動は配列にしてください。');
-        const queue=[...n.details];
-        while(queue.length){const item=queue.pop();fields(item,['id','kind','text','children'],[],'詳細仕様・挙動');id(item.id,details,'詳細');if(!Object.hasOwn(DETAIL_KINDS,item.kind))throw Error('詳細の種類が不正です。');string(item.text,'詳細の内容',true);if(!Array.isArray(item.children))throw Error('詳細の子要素は配列にしてください。');queue.push(...item.children);}
+        checkDetails(n.details);
       }
       for(const e of d.edges){fields(e,['id','source','target','label'],[],'矢印');id(e.id,edges,'矢印');if(!nodes.has(e.source)||!nodes.has(e.target))throw Error('矢印の接続先ノードがありません。');string(e.label,'矢印の条件');}
     }
@@ -39,7 +45,7 @@ export function validateCycleMap(rows,cycles){
   return true;
 }
 export function createCycle(title='新しいサイクル図'){return {id:uid('cycle'),title,description:'',nodes:[],edges:[]};}
-export function createCycleNode(kind='phase',x=80,y=100){if(!Object.hasOwn(CYCLE_KINDS,kind))throw Error('ノードの種類が不正です。');return {id:uid('node'),kind,text:'新しい'+CYCLE_KINDS[kind],description:'',x,y,details:[]};}
+export function createCycleNode(kind='phase',x=80,y=100){if(!Object.hasOwn(CYCLE_KINDS,kind))throw Error('ノードの種類が不正です。');return {id:uid('node'),kind,text:'新しい'+CYCLE_KINDS[kind],description:'',x,y,details:[],...(kind==='reference'?{reference:''}:{})};}
 export function createDetail(kind='specification'){if(!Object.hasOwn(DETAIL_KINDS,kind))throw Error('詳細の種類が不正です。');return {id:uid('detail'),kind,text:'新しい'+DETAIL_KINDS[kind],children:[]};}
 export function connectCycle(d,source,target,label=''){if(!d.nodes.some(n=>n.id===source)||!d.nodes.some(n=>n.id===target))throw Error('接続するノードを選択してください。');const edge={id:uid('edge'),source,target,label};d.edges.push(edge);return edge;}
 export function removeCycleNode(d,id){d.nodes=d.nodes.filter(n=>n.id!==id);d.edges=d.edges.filter(e=>e.source!==id&&e.target!==id);}
@@ -57,6 +63,16 @@ export function insertCycleOnEdge(d,edgeId,{kind='phase',text}={}){
   const target=e.target;d.nodes.splice(d.nodes.findIndex(n=>n.id===e.source)+1,0,n);e.target=n.id;
   const next=connectCycle(d,n.id,target);return {node:n,edge:next};
 }
+export function appendCycleNode(d,sourceId,{kind='phase',text,label=''}={}){
+  const source=d.nodes.find(n=>n.id===sourceId);if(!source)throw Error('接続元のノードがありません。');
+  const point=freeCyclePosition(d,source.x+CYCLE_NODE.width+90,source.y),n=createCycleNode(kind,point.x,point.y);if(text!==undefined)n.text=text;
+  d.nodes.splice(d.nodes.indexOf(source)+1,0,n);connectCycle(d,source.id,n.id,label);return {diagramId:d.id,selection:{kind:'node',id:n.id}};
+}
+export function appendCycleHierarchy(rows,cycles,key,{kind,text}={}){
+  const r=cycleRows(rows,cycles).find(r=>r.node._key===key);if(!r)throw Error('追加先の項目がありません。');const d=r.diagram;
+  if(r.type==='cycle'){const count=d.nodes.length,p=freeCyclePosition(d,80+(count%3)*290,110+Math.floor(count/3)*200),n=createCycleNode(kind||'phase',p.x,p.y);if(text!==undefined)n.text=text;d.nodes.push(n);return {diagramId:d.id,selection:{kind:'node',id:n.id}};}
+  const nodeId=r.selection.kind==='node'?r.selection.id:r.selection.nodeId||'',holder=detailHolder(d,nodeId),list=r.selection.kind==='detail'?detailRows(holder.details||[]).find(x=>x.item.id===r.selection.id).item.children:(holder.details??=[]),item=createDetail(kind||'specification');if(text!==undefined)item.text=text;list.push(item);return {diagramId:d.id,selection:{kind:'detail',nodeId,id:item.id}};
+}
 export function insertCycleHierarchy(rows,cycles,key,{position='after',kind,text}={}){
   const r=cycleRows(rows,cycles).find(r=>r.node._key===key);if(!r)throw Error('挿入先の項目がありません。');
   if(!['before','after','wrap'].includes(position)||position==='wrap'&&r.selection.kind!=='detail')throw Error('この階層にはその方法で挿入できません。');
@@ -68,12 +84,12 @@ export function insertCycleHierarchy(rows,cycles,key,{position='after',kind,text
     const index=d.nodes.findIndex(n=>n.id===r.selection.id),reference=d.nodes[index],point=freeCyclePosition(d,reference.x+(position==='after'?260:-260),reference.y),n=createCycleNode(kind||reference.kind,point.x,point.y);
     if(text!==undefined)n.text=text;d.nodes.splice(index+(position==='after'?1:0),0,n);return {diagramId:d.id,selection:{kind:'node',id:n.id}};
   }
-  const n=d.nodes.find(n=>n.id===r.selection.nodeId),row=detailRows(n.details).find(x=>x.item.id===r.selection.id),item=createDetail(kind||row.item.kind);
+  const n=detailHolder(d,r.selection.nodeId),row=detailRows(n.details).find(x=>x.item.id===r.selection.id),item=createDetail(kind||row.item.kind);
   if(text!==undefined)item.text=text;
   if(position==='wrap'){item.children=[row.item];row.list.splice(row.index,1,item);}else row.list.splice(row.index+(position==='after'?1:0),0,item);
-  return {diagramId:d.id,selection:{kind:'detail',nodeId:n.id,id:item.id}};
+  return {diagramId:d.id,selection:{kind:'detail',nodeId:r.selection.nodeId||'',id:item.id}};
 }
-export function cloneCycle(source){const d=copy(source),map=new Map();d.id=uid('cycle');for(const n of d.nodes){const old=n.id;n.id=uid('node');map.set(old,n.id);for(const {item}of detailRows(n.details))item.id=uid('detail');}for(const e of d.edges){e.id=uid('edge');e.source=map.get(e.source);e.target=map.get(e.target);}return d;}
+export function cloneCycle(source){const d=copy(source),map=new Map();d.id=uid('cycle');for(const {item}of detailRows(d.details||[]))item.id=uid('detail');for(const n of d.nodes){const old=n.id;n.id=uid('node');map.set(old,n.id);if(n.reference===source.id)n.reference=d.id;for(const {item}of detailRows(n.details))item.id=uid('detail');}for(const e of d.edges){e.id=uid('edge');e.source=map.get(e.source);e.target=map.get(e.target);}return d;}
 export function findCycle(cycles,id){for(const [owner,list]of Object.entries(cycles))for(const diagram of list)if(diagram.id===id)return {owner,diagram};return null;}
 export function cycleRows(rows,cycles){
   const result=[];
@@ -82,11 +98,12 @@ export function cycleRows(rows,cycles){
       const row={node:{_key:key,title:text,explanation:description||''},type,parent:parent.node,field,index,path:parent.path+'/'+field+'/'+index,depth:parent.depth+1,diagram:d,ownerKey:owner.node._key,selection,label:label||CYCLE_ROW_TYPES[type].label};
       result.push(row);return row;
     };
-    const diagram=add(owner,'cycleDiagrams',index,'cycle','cycle:'+d.id,d.title,d.description,{kind:'diagram'});diagram.childCount=d.nodes.length;
+    const diagram=add(owner,'cycleDiagrams',index,'cycle','cycle:'+d.id,d.title,d.description,{kind:'diagram'});diagram.childCount=d.nodes.length+(d.details||[]).length;
+    const visit=(items,parent,field,nodeId)=>items.forEach((item,j)=>{const row=add(parent,field,j,item.kind==='behavior'?'cycleBehavior':item.kind==='rule'?'cycleRule':'cycleSpecification',`cycle:${d.id}:detail:${item.id}`,item.text,'',{kind:'detail',nodeId,id:item.id});row.childCount=item.children.length;visit(item.children,row,'children',nodeId);});
+    visit(d.details||[],diagram,'details','');
     for(const [i,n]of d.nodes.entries()){
       const node=add(diagram,'nodes',i,'cycleNode',`cycle:${d.id}:node:${n.id}`,n.text,n.description,{kind:'node',id:n.id},CYCLE_KINDS[n.kind]);node.childCount=n.details.length;
-      const visit=(items,parent,field)=>items.forEach((item,j)=>{const row=add(parent,field,j,item.kind==='behavior'?'cycleBehavior':'cycleSpecification',`cycle:${d.id}:detail:${item.id}`,item.text,'',{kind:'detail',nodeId:n.id,id:item.id});row.childCount=item.children.length;visit(item.children,row,'children');});
-      visit(n.details,node,'details');
+      visit(n.details,node,'details',n.id);
     }
   }
   return result;

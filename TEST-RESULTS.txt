@@ -1,6 +1,6 @@
-USDM Studio v1.10.0 verification — 2026-10-02
+USDM Studio v1.11.0 verification — 2026-10-03
 
-Model + graph + review/diff + transformations + cycles: 49/49 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 56/56 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
@@ -9,7 +9,8 @@ v1.7 browser: 12 scenarios passed (Chrome headless)
 Cycle browser: 15 scenarios passed (Chrome headless)
 v1.9 browser: 9 scenarios passed (Chrome headless)
 v1.10 browser: 9 scenarios passed (Chrome headless)
-Total: 140 checks passed
+v1.11 browser: 13 scenarios passed (Chrome headless)
+Total: 160 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -104,3 +105,16 @@ External network requests during operation: 0
 89. PASS Focused explorer adds into the current diagram and reflects deletion and undo in its outline
 90. PASS Project round-trip preserves insertions while keeping explorer preferences outside the saved JSON
 91. PASS Insertion buttons and focused explorer stay usable across layout sizes
+92. PASS Tree terminal plus adds schema-valid children and offers a following sibling for leaf specifications
+93. PASS Player inputs and game events have distinct editable nodes and retain their details when converted
+94. PASS References select and open another diagram from the canvas, without copying its content
+95. PASS Changing a reference into another kind warns before removing its link and undo restores it
+96. PASS Rules for the diagram and a node share one editable source, with explicit scope and no extra flow nodes
+97. PASS Global rules appear in the hierarchy and content view and support nested editing, wrapping and undo
+98. PASS Rule visibility changes preserve invalid drafts and rule deletion is fully reversible
+99. PASS Deleting a referenced diagram keeps the referring node and shows a repairable warning until undo
+100. PASS Branch conditions are reachable above detailed specifications and remain plain-language labels
+101. PASS Cycle terminal plus creates a node and connection together, with cancellation, undo and redo
+102. PASS Tree terminal plus extends cycle node details and global rules as children
+103. PASS Project save, reload, JSON editing and print preview preserve all new content
+104. PASS Game-flow tools and rule cards stay accessible at desktop and narrow widths

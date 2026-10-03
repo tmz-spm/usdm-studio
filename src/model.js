@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import schema from '../schema/document.schema.json';
-import {CYCLE_OWNERS,validateCycleMap} from './cycles.js';
+import {CYCLE_OWNERS,validateCycleMap,cycleFormatVersion} from './cycles.js';
 
 export const TYPES = {
   document: {label:'文書', child:{categories:'category'}},
@@ -53,7 +53,7 @@ export function validate(doc) {
 export function parseInput(text) {
   const raw=JSON.parse(text.replace(/^\uFEFF/,''));
   const project=raw?.format==='usdm-studio-project';
-  if(project && ![1,2].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
+  if(project && ![1,2,3].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
   const d=project?raw.document:raw;
   // Validate the original, before removing any internal keys.
   if(!check(d)) throw Error((check.errors||[]).map(e=>`${e.instancePath||'/'} ${e.message}`).join('\n'));
@@ -66,10 +66,11 @@ export function parseInput(text) {
       if(!byPath.has(p)||!Array.isArray(ls)||ls.some(x=>typeof x!=='string'||!x.trim())) throw Error(`自由ラベルの参照が不正です: ${p}`);
       labels[byPath.get(p).node._key]=[...new Set(ls)];
     }
-    if(raw.projectVersion===2){
+    if(raw.projectVersion>=2){
       if(!raw.cycleDiagrams||typeof raw.cycleDiagrams!=='object'||Array.isArray(raw.cycleDiagrams))throw Error('cycleDiagrams は所属先とサイクル図配列のオブジェクトにしてください。');
       for(const [path,diagrams]of Object.entries(raw.cycleDiagrams)){const owner=byPath.get(path);if(!owner||!CYCLE_OWNERS.has(owner.type))throw Error('サイクル図の所属先が不正です: '+path);cycles[owner.node._key]=diagrams;}
       validateCycleMap(walk(doc),cycles);
+      if(raw.projectVersion<cycleFormatVersion(cycles))throw Error('入力・イベント・参照・図全体の仕様・ルールを含むプロジェクトは projectVersion を3にしてください。');
     }else if(Object.hasOwn(raw,'cycleDiagrams'))throw Error('サイクル図を含むプロジェクトは projectVersion を2にしてください。');
   }
   return {doc,labels,cycles};
@@ -78,7 +79,7 @@ export function projectData(doc,labels,cycles={}) {
   const rows=walk(doc),paths={},diagrams={};validateCycleMap(rows,cycles);
   for(const x of rows){if(labels[x.node._key]?.length)paths[x.path]=labels[x.node._key];if(cycles[x.node._key]?.length)diagrams[x.path]=clone(cycles[x.node._key]);}
   const hasCycles=Object.keys(diagrams).length>0;
-  return {format:'usdm-studio-project',projectVersion:hasCycles?2:1,document:canonical(doc),labels:paths,...(hasCycles?{cycleDiagrams:diagrams}:{})};
+  return {format:'usdm-studio-project',projectVersion:hasCycles?cycleFormatVersion(cycles):1,document:canonical(doc),labels:paths,...(hasCycles?{cycleDiagrams:diagrams}:{})};
 }
 export function uniqueId(doc,prefix) {
   const ids=new Set(walk(doc).map(x=>x.node.id)); let i=1;

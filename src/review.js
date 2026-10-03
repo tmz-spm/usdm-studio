@@ -34,16 +34,17 @@ export function duplicateNodes(doc,labels,keys,{resetVerified=true,cycles={}}={}
   const roots=selectedRoots(doc,keys);if(!roots.length)throw Error('複製する要素を選んでください。文書全体は複製できません。');
   const ids=new Set(walk(doc).map(r=>r.node.id).filter(Boolean));
   const groupNames=new Map();for(const r of walk(doc).filter(r=>r.type.endsWith('Group')||r.type==='category'))(groupNames.get(r.type)||groupNames.set(r.type,new Set()).get(r.type)).add(r.node.name);
-  const added=[];
+  const added=[],diagramCopies=new Map(),copiedDiagrams=[];
   function copy(n,type){
     const oldKey=n._key;n._key=crypto.randomUUID();if(labels[oldKey]?.length)labels[n._key]=clone(labels[oldKey]);
-    if(cycles[oldKey]?.length)cycles[n._key]=cycles[oldKey].map(cloneCycle);
+    if(cycles[oldKey]?.length)cycles[n._key]=cycles[oldKey].map(d=>{const next=cloneCycle(d);diagramCopies.set(d.id,next.id);copiedDiagrams.push(next);return next;});
     if(n.id){const base=n.id+'_copy';let id=base,i=2;while(ids.has(id))id=base+i++;n.id=id;ids.add(id);}
     if(n.name){const names=groupNames.get(type)||new Set();const base=n.name.replace(/^＜|＞$/g,'');let name=`＜${base}（コピー）＞`,i=2;while(names.has(name))name=`＜${base}（コピー${i++}）＞`;n.name=name;names.add(name);groupNames.set(type,names);}
     if(type==='specification'&&resetVerified)n.verified=[false,false,false];
     for(const [field,t]of Object.entries(TYPES[type].child))for(const child of n[field]||[])copy(child,t);
   }
   for(const r of roots){const n=clone(r.node);copy(n,r.type);r.parent[r.field].splice(r.parent[r.field].indexOf(r.node)+1,0,n);added.push(n._key);}
+  for(const d of copiedDiagrams)for(const n of d.nodes)if(diagramCopies.has(n.reference))n.reference=diagramCopies.get(n.reference);
   return added;
 }
 
