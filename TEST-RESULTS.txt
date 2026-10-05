@@ -1,6 +1,6 @@
-USDM Studio v1.11.0 verification — 2026-10-03
+USDM Studio v1.12.0 verification — 2026-10-05
 
-Model + graph + review/diff + transformations + cycles: 56/56 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 64/64 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
@@ -10,7 +10,8 @@ Cycle browser: 15 scenarios passed (Chrome headless)
 v1.9 browser: 9 scenarios passed (Chrome headless)
 v1.10 browser: 9 scenarios passed (Chrome headless)
 v1.11 browser: 13 scenarios passed (Chrome headless)
-Total: 160 checks passed
+v1.12 browser: 14 scenarios passed (Chrome headless)
+Total: 182 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -118,3 +119,17 @@ External network requests during operation: 0
 102. PASS Tree terminal plus extends cycle node details and global rules as children
 103. PASS Project save, reload, JSON editing and print preview preserve all new content
 104. PASS Game-flow tools and rule cards stay accessible at desktop and narrow widths
+105. PASS Initial terminal lines can be selected and deleted with Delete without deleting their nodes or specifications
+106. PASS Hidden terminal lines persist through reload and can be restored before using the plus again
+107. PASS Selecting a real arrow shows two endpoint handles on the attached nodes
+108. PASS Dragging both endpoint handles adjusts the curve while keeping nodes, conditions and connections intact
+109. PASS Endpoint dragging uses graph coordinates when zoomed and scrolled, and stays on its existing node
+110. PASS Moving a node and changing its shape preserves manual anchors and keeps the endpoint on the new outline
+111. PASS Escape and pointer cancellation discard drag previews without saving an endpoint adjustment
+112. PASS Pending arrow labels are applied before a drag and Delete in a text field only edits text
+113. PASS Invalid node drafts block line selection and stay editable without changing diagram data
+114. PASS Automatic positioning can be restored and undone; changing an endpoint node resets only that endpoint
+115. PASS Focused handles support keyboard adjustment and selected arrows retain their normal Delete operation
+116. PASS Return arrows and self loops expose movable endpoints and retain their labels
+117. PASS Inserting at an adjusted arrow preserves the original nodes endpoint positions and is reversible
+118. PASS Project JSON editing, reload and display keep endpoint and hidden-line settings without extra network activity

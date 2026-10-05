@@ -53,7 +53,7 @@ export function validate(doc) {
 export function parseInput(text) {
   const raw=JSON.parse(text.replace(/^\uFEFF/,''));
   const project=raw?.format==='usdm-studio-project';
-  if(project && ![1,2,3].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
+  if(project && ![1,2,3,4].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
   const d=project?raw.document:raw;
   // Validate the original, before removing any internal keys.
   if(!check(d)) throw Error((check.errors||[]).map(e=>`${e.instancePath||'/'} ${e.message}`).join('\n'));
@@ -70,7 +70,7 @@ export function parseInput(text) {
       if(!raw.cycleDiagrams||typeof raw.cycleDiagrams!=='object'||Array.isArray(raw.cycleDiagrams))throw Error('cycleDiagrams は所属先とサイクル図配列のオブジェクトにしてください。');
       for(const [path,diagrams]of Object.entries(raw.cycleDiagrams)){const owner=byPath.get(path);if(!owner||!CYCLE_OWNERS.has(owner.type))throw Error('サイクル図の所属先が不正です: '+path);cycles[owner.node._key]=diagrams;}
       validateCycleMap(walk(doc),cycles);
-      if(raw.projectVersion<cycleFormatVersion(cycles))throw Error('入力・イベント・参照・図全体の仕様・ルールを含むプロジェクトは projectVersion を3にしてください。');
+      if(raw.projectVersion<cycleFormatVersion(cycles))throw Error(`このサイクル図の設定を含むプロジェクトは projectVersion を${cycleFormatVersion(cycles)}にしてください。`);
     }else if(Object.hasOwn(raw,'cycleDiagrams'))throw Error('サイクル図を含むプロジェクトは projectVersion を2にしてください。');
   }
   return {doc,labels,cycles};
