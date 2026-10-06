@@ -1,0 +1,24 @@
+.cycle-lane{position:absolute;pointer-events:none;border:1px solid #c4d2dd;background:#ffffff91;border-right-width:0}
+.cycle-lane:last-of-type{border-right-width:1px}
+.cycle-lane:nth-of-type(even){background:#eef4f991}
+.cycle-lane-heading{display:block;pointer-events:auto;width:100%;height:46px;border:0;border-bottom:1px solid #c4d2dd;border-radius:0;background:#edf3f8;color:#3d566b;position:relative;z-index:4;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 16px;cursor:pointer}
+.cycle-lane.selected{border:2px solid #468bac}.cycle-lane.selected .cycle-lane-heading{background:#dbeef8}
+.uml-node{color:#273c4a}.uml-node .cycle-node-shape>*{fill:white;stroke:#567c91;stroke-width:1.8}
+.uml-node.action .cycle-node-shape>*,.uml-node.reference .cycle-node-shape>*{fill:#fff;stroke:#567c91}
+.uml-node .cycle-node-shape>.uml-solid{fill:#263746;stroke:#263746}
+.uml-node.end .cycle-node-shape>circle:first-child{fill:white;stroke:#263746}
+.uml-node.start,.uml-node.end,.uml-node.fork,.uml-node.join{justify-content:flex-start;padding:81px 4px 0;gap:2px}
+.uml-node.start .cycle-node-kind,.uml-node.end .cycle-node-kind,.uml-node.fork .cycle-node-kind,.uml-node.join .cycle-node-kind{display:none}
+.uml-node.start .cycle-node-text,.uml-node.end .cycle-node-text,.uml-node.fork .cycle-node-text,.uml-node.join .cycle-node-text{font-size:10px;line-height:1.35;-webkit-line-clamp:1}
+.uml-node.start .cycle-node-details,.uml-node.end .cycle-node-details,.uml-node.fork .cycle-node-details,.uml-node.join .cycle-node-details{font-size:8px}
+.uml-node.start .cycle-node-text,.uml-node.end .cycle-node-text{position:absolute;left:0;top:37px;width:70px;text-align:right;-webkit-line-clamp:2}
+.uml-node.start .cycle-node-details,.uml-node.end .cycle-node-details{position:absolute;left:0;top:70px;width:70px;text-align:right}
+.uml-node.merge{padding:20px 43px;gap:2px}.uml-node.merge .cycle-node-text{font-size:11px}
+.uml-node.selected .cycle-node-shape>*,.uml-node.connecting .cycle-node-shape>*{stroke:#188ac8;stroke-width:3.5}
+.cycle-edge.selected .cycle-edge-hit,.cycle-edge.selected text{cursor:move}
+.cycle-selected-lines{z-index:4}.cycle-edge-plus,.cycle-tail{z-index:6}.cycle-anchor-handle{z-index:7}
+.uml-node.start,.uml-node.end,.uml-node.fork,.uml-node.join{pointer-events:none}
+.uml-node.start .cycle-node-shape>*,.uml-node.end .cycle-node-shape>*,.uml-node.fork .cycle-node-shape>*,.uml-node.join .cycle-node-shape>*,.uml-node.start .cycle-node-text,.uml-node.end .cycle-node-text,.uml-node.fork .cycle-node-text,.uml-node.join .cycle-node-text{pointer-events:auto}
+.activity-issues{flex-shrink:0;padding:8px 16px;background:#fffaed;border-bottom:1px solid #e5d7ad;color:#846b39;font-size:11px;max-height:170px;overflow:auto}
+.activity-issues summary{cursor:pointer}.activity-issues ul{padding-left:20px;margin-top:8px;line-height:1.8}
+#plantUmlSource{white-space:pre;overflow-wrap:normal;background:#f6f8fa}

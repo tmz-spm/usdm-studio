@@ -1,6 +1,6 @@
-USDM Studio v1.13.0 verification — 2026-10-06
+USDM Studio v1.14.0 verification — 2026-10-06
 
-Model + graph + review/diff + transformations + cycles: 72/72 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 90/90 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
@@ -12,7 +12,9 @@ v1.10 browser: 9 scenarios passed (Chrome headless)
 v1.11 browser: 13 scenarios passed (Chrome headless)
 v1.12 browser: 14 scenarios passed (Chrome headless)
 v1.13 browser: 14 scenarios passed (Chrome headless)
-Total: 204 checks passed
+v1.14 browser: 16 scenarios passed (Chrome headless)
+PlantUML: 10 generated diagrams rendered successfully (PlantUML version 1.2026.8 / 149874a [2026-09-05 15:59:17 UTC])
+Total: 248 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -148,3 +150,29 @@ External network requests during operation: 0
 130. PASS A delayed clipboard read cannot paste into a different diagram after tab switching
 131. PASS Saved pasted flows reload without a new project format and remain editable in tree and diagram views
 132. PASS Copy controls remain visible and the page stays within desktop and narrow viewport widths
+133. PASS Diagram creation offers cycle and UML modes with an empty initial graph
+134. PASS Activity symbols and role swimlanes match the stored graph, while specifications remain in the hierarchy
+135. PASS UML palette and focused explorer add supported actions, decisions, merges, forks and joins
+136. PASS Multiple selected nodes can be grouped into a new role or assigned together to an existing one
+137. PASS Role properties rename, resize, reorder and remove a column without deleting its specifications
+138. PASS Dragging a node across a role boundary changes its role and remains undoable
+139. PASS PlantUML updates after GUI edits, is embedded in JSON, and downloads as a local puml file
+140. PASS Switching cycle and UML modes warns about kind conversion and keeps text, details and arrows
+141. PASS Native clipboard transfers UML roles, nested specifications and routed arrows across independent browser tabs
+142. PASS Cross-mode paste asks before converting unsupported kinds and cancellation does not alter either graph
+143. PASS Dragging a selected line body fixes both endpoints in cycle and UML modes and supports reset, Undo and Redo
+144. PASS Escape discards a route preview and endpoint handles still edit the attached node outline
+145. PASS JSON save and reload retain UML mode, roles, coordinates, generated source and detailed specifications
+146. PASS Route dragging accounts for zoom and scrolling, flushes edited conditions and cancels a pointer preview
+147. PASS UML decision guards use brackets and the selected-line plus still inserts an editable UML action
+148. PASS Activity controls remain usable at desktop and narrow widths without page overflow or external requests
+149. PASS PlantUML: swimlanes
+150. PASS PlantUML: branch-loop
+151. PASS PlantUML: fork-join
+152. PASS PlantUML: multiple-initials
+153. PASS PlantUML: disconnected
+154. PASS PlantUML: self-loop
+155. PASS PlantUML: empty
+156. PASS PlantUML: unfinished
+157. PASS PlantUML: draft-final-edge
+158. PASS PlantUML: literal-labels

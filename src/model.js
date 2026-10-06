@@ -1,3 +1,4 @@
+import {syncPlantUml} from './activity.js';
 import Ajv from 'ajv';
 import schema from '../schema/document.schema.json';
 import {CYCLE_OWNERS,validateCycleMap,cycleFormatVersion} from './cycles.js';
@@ -53,7 +54,7 @@ export function validate(doc) {
 export function parseInput(text) {
   const raw=JSON.parse(text.replace(/^\uFEFF/,''));
   const project=raw?.format==='usdm-studio-project';
-  if(project && ![1,2,3,4].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
+  if(project && ![1,2,3,4,5].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
   const d=project?raw.document:raw;
   // Validate the original, before removing any internal keys.
   if(!check(d)) throw Error((check.errors||[]).map(e=>`${e.instancePath||'/'} ${e.message}`).join('\n'));
@@ -73,12 +74,12 @@ export function parseInput(text) {
       if(raw.projectVersion<cycleFormatVersion(cycles))throw Error(`このサイクル図の設定を含むプロジェクトは projectVersion を${cycleFormatVersion(cycles)}にしてください。`);
     }else if(Object.hasOwn(raw,'cycleDiagrams'))throw Error('サイクル図を含むプロジェクトは projectVersion を2にしてください。');
   }
-  return {doc,labels,cycles};
+  syncPlantUml(cycles);return {doc,labels,cycles};
 }
 export function projectData(doc,labels,cycles={}) {
   const rows=walk(doc),paths={},diagrams={};validateCycleMap(rows,cycles);
   for(const x of rows){if(labels[x.node._key]?.length)paths[x.path]=labels[x.node._key];if(cycles[x.node._key]?.length)diagrams[x.path]=clone(cycles[x.node._key]);}
-  const hasCycles=Object.keys(diagrams).length>0;
+  syncPlantUml(diagrams);const hasCycles=Object.keys(diagrams).length>0;
   return {format:'usdm-studio-project',projectVersion:hasCycles?cycleFormatVersion(cycles):1,document:canonical(doc),labels:paths,...(hasCycles?{cycleDiagrams:diagrams}:{})};
 }
 export function uniqueId(doc,prefix) {
@@ -142,7 +143,7 @@ export function insertSubRequirementOnEdge(doc,targetKey) {
   return sub._key;
 }
 export class Store {
-  constructor(doc,labels={},cycles={}) {this.doc=doc;this.labels=labels;this.cycles=cycles;this.past=[];this.future=[];}
+  constructor(doc,labels={},cycles={}) {this.doc=doc;this.labels=labels;this.cycles=cycles;syncPlantUml(this.cycles);this.past=[];this.future=[];}
   snapshot(){return clone({doc:this.doc,labels:this.labels,cycles:this.cycles});}
   transaction(fn) {
     const before=this.snapshot();
@@ -152,7 +153,7 @@ export class Store {
       if(result.errors.length) throw Error('変更できません。必須の子要素が空になる場合はグループごと操作してください。\n'+result.errors.join('\n'));
       const owners=new Set(walk(this.doc).filter(r=>CYCLE_OWNERS.has(r.type)).map(r=>r.node._key));
       for(const key of Object.keys(before.cycles))if(!owners.has(key))delete this.cycles[key];
-      validateCycleMap(walk(this.doc),this.cycles);
+      validateCycleMap(walk(this.doc),this.cycles);syncPlantUml(this.cycles);
       this.doc.metadata??={};this.doc.metadata.modified=new Date().toISOString();
       this.past.push(before);if(this.past.length>100)this.past.shift();this.future=[];
     } catch(e){Object.assign(this,before);throw e;}

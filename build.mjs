@@ -2,7 +2,7 @@ import {build} from 'esbuild';
 import {readFile,writeFile,mkdir,copyFile} from 'node:fs/promises';
 await mkdir('dist',{recursive:true});
 const js=await build({entryPoints:['src/app.js'],bundle:true,write:false,minify:true,target:'es2022',legalComments:'inline'});
-const html=(await readFile('src/index.html','utf8')).replace('/*APP_CSS*/',(await readFile('src/style.css','utf8'))+'\n'+(await readFile('src/transform.css','utf8'))+'\n'+(await readFile('src/layout.css','utf8'))+'\n'+(await readFile('src/cycles.css','utf8'))).replace('/*APP_JS*/',()=>js.outputFiles[0].text.replace(/<\/script/gi,'<\\/script'));
+const html=(await readFile('src/index.html','utf8')).replace('/*APP_CSS*/',(await readFile('src/style.css','utf8'))+'\n'+(await readFile('src/transform.css','utf8'))+'\n'+(await readFile('src/layout.css','utf8'))+'\n'+(await readFile('src/cycles.css','utf8'))+'\n'+(await readFile('src/activity.css','utf8'))).replace('/*APP_JS*/',()=>js.outputFiles[0].text.replace(/<\/script/gi,'<\\/script'));
 await writeFile('dist/USDM-Studio.html',html);
 await copyFile('schema/document.schema.json','dist/document.schema.json');
 await copyFile('schema/LICENSE.txt','dist/SCHEMA-LICENSE.txt');
