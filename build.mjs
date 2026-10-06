@@ -11,4 +11,5 @@ await build({entryPoints:['src/graph.js'],bundle:true,platform:'node',format:'es
 await build({entryPoints:['src/review.js'],bundle:true,platform:'node',format:'esm',outfile:'tests/review.bundle.mjs'});
 await build({entryPoints:['src/transform.js'],bundle:true,platform:'node',format:'esm',outfile:'tests/transform.bundle.mjs'});
 await build({entryPoints:['src/cycles.js'],bundle:true,platform:'node',format:'esm',outfile:'tests/cycles.bundle.mjs'});
+await build({entryPoints:['src/cycle-clipboard.js'],bundle:true,platform:'node',format:'esm',outfile:'tests/cycle-clipboard.bundle.mjs'});
 console.log('Built dist/USDM-Studio.html — fully offline');

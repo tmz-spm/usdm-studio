@@ -7,3 +7,4 @@ dist/
 test-results/
 /*.png
 tests/cycles.bundle.mjs
+tests/cycle-clipboard.bundle.mjs

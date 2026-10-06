@@ -57,7 +57,7 @@ function renderExplorer(){rememberExplorer();$('#explorerPanel').innerHTML=explo
 function setExplorerFocus(focus){cycleExplorerFocused=focus;if(focus&&view.state.sidebar==='hidden')view.toggle('sidebar');renderExplorer();}
 function treeHTML(){const focus=isCycleExplorer(),folds=focus?cycleUI.explorerState().collapsed:collapsed,offset=focus?(explorerRows()[0]?.depth||1)-1:0;return shownRows().map(r=>{
   const n=r.node;
-  if(r.diagram){const has=r.childCount;return `<div class="tree-row cycle-tree-row ${cycleUI.selectedRowKey()===n._key?'selected':''}" data-node="${n._key}" role="treeitem" aria-selected="${cycleUI.selectedRowKey()===n._key}" ${has?`aria-expanded="${!folds.has(n._key)}"`:''} style="padding-left:${7+(r.depth-offset-1)*15}px" title="${esc(r.label+'：'+titleOf(n))}"><button class="toggle" data-collapse="${n._key}" aria-label="${folds.has(n._key)?'展開':'折りたたむ'}" ${has?'':'disabled'}>${has?icon(folds.has(n._key)?'chevron':'down'):''}</button>${typeIcon(r.type)}${btn('cycle-jump',esc(titleOf(n)),null,'cycle-tree-link',`data-target="${n._key}" title="図の該当箇所を編集"`)}</div>`;}
+  if(r.diagram){const has=r.childCount;return `<div class="tree-row cycle-tree-row ${cycleUI.isRowSelected(n._key)?'selected':''}" data-node="${n._key}" role="treeitem" aria-selected="${cycleUI.isRowSelected(n._key)}" ${has?`aria-expanded="${!folds.has(n._key)}"`:''} style="padding-left:${7+(r.depth-offset-1)*15}px" title="${esc(r.label+'：'+titleOf(n))}"><button class="toggle" data-collapse="${n._key}" aria-label="${folds.has(n._key)?'展開':'折りたたむ'}" ${has?'':'disabled'}>${has?icon(folds.has(n._key)?'chevron':'down'):''}</button>${typeIcon(r.type)}${btn('cycle-jump',esc(titleOf(n)),null,'cycle-tree-link',`data-target="${n._key}" title="図の該当箇所を編集"`)}</div>`;}
   const has=Object.keys(TYPES[r.type].child).some(f=>n[f]?.length)||store.cycles[n._key]?.length;
   return `<div class="tree-row ${selected.has(n._key)?'selected':''} ${active===n._key?'active':''}" data-node="${n._key}" data-tree="1" draggable="true" role="treeitem" aria-selected="${selected.has(n._key)}" ${has?`aria-expanded="${!folds.has(n._key)}"`:''} style="padding-left:${7+(r.depth-offset-1)*15}px" tabindex="0" title="${esc(titleOf(n))}"><button class="toggle" data-collapse="${n._key}" aria-label="${folds.has(n._key)?'展開':'折りたたむ'}" ${has?'':'disabled'}>${has?icon(folds.has(n._key)?'chevron':'down'):''}</button><input type="checkbox" data-select="${n._key}" aria-label="${esc(n.id||titleOf(n))}を選択" ${selected.has(n._key)?'checked':''}>${typeIcon(r.type)}<span class="node-label">${r.type==='category'||r.type.endsWith('Group')?esc(titleOf(n).replace(/^＜|＞$/g,'')):`<span class="node-id">${esc(n.id)}</span> ${esc(titleOf(n))}`}</span></div>`;
 }).join('')||'<div class="empty">一致する要素がありません</div>';}
@@ -234,7 +234,7 @@ function saveForm(){
 function flush(){if(!cycleUI.flush())return false;if(rawDirty){error('JSONに未適用の変更があります。「JSONを検証して適用」または「編集を取り消す」を選んでください。');return false;}return saveForm();}
 function selectNode(key,e={}){
   if(!flush())return;
-  if(key?.startsWith('cycle:')){const r=treeRows().find(r=>r.node._key===key);if(r)cycleUI.open(r.diagram.id,r.selection);return;}
+  if(key?.startsWith('cycle:')){const r=treeRows().find(r=>r.node._key===key);if(r){if(cycleUI.isActive()&&cycleUI.currentId()===r.diagram.id&&r.selection.kind==='node'&&(e.ctrlKey||e.metaKey||e.shiftKey))cycleUI.chooseNode(r.selection.id,e);else cycleUI.open(r.diagram.id,r.selection);}return;}
   if(cycleUI.isActive())tab='graph';
   const row=get(key);if(!row)return;
   if(e.shiftKey&&anchor){const visible=(tab==='graph'?graph.layout.nodes:shownRows()).filter(r=>!r.diagram).map(r=>r.node._key),a=visible.indexOf(anchor),b=visible.indexOf(key);if(a>=0&&b>=0){if(!e.ctrlKey&&!e.metaKey)selected.clear();visible.slice(Math.min(a,b),Math.max(a,b)+1).forEach(k=>selected.add(k));}else selected.add(key);}
@@ -347,9 +347,9 @@ const actions={
   'restore':()=>{$('#dialog').close();store=new Store(recovery.doc,recovery.labels,recovery.cycles);cycleUI.reset();active=scope=store.doc._key;selected.clear();dirty=true;fileName='復元した文書';recovery=null;render();toast('一時保存を復元しました');},
   'skip-restore':()=>{$('#dialog').close();recovery=null;}
 };
-Object.assign(actions,cycleUI.actions,{'cycle-jump':b=>selectNode(b.dataset.target),'cycle-explorer':()=>setExplorerFocus(true),'explorer-focus':()=>setExplorerFocus(true),'explorer-document':()=>setExplorerFocus(false),'cycle-explorer-expand':()=>{cycleUI.explorerState().collapsed.clear();renderExplorer();},'cycle-explorer-collapse':()=>{cycleUI.explorerState().collapsed=new Set(explorerRows().filter(r=>r.type!=='cycle').map(r=>r.node._key));renderExplorer();},'cycle-explorer-add':()=>cycleUI.actions['cycle-add-node']({dataset:{kind:'phase'}})});
+Object.assign(actions,cycleUI.actions,{'cycle-jump':(b,e)=>selectNode(b.dataset.target,e),'cycle-explorer':()=>setExplorerFocus(true),'explorer-focus':()=>setExplorerFocus(true),'explorer-document':()=>setExplorerFocus(false),'cycle-explorer-expand':()=>{cycleUI.explorerState().collapsed.clear();renderExplorer();},'cycle-explorer-collapse':()=>{cycleUI.explorerState().collapsed=new Set(explorerRows().filter(r=>r.type!=='cycle').map(r=>r.node._key));renderExplorer();},'cycle-explorer-add':()=>cycleUI.actions['cycle-add-node']({dataset:{kind:'phase'}})});
 const noFlush=new Set(['cycle-toggle-rules','cycle-confirm-kind','cycle-explorer','explorer-focus','explorer-document','cycle-explorer-expand','cycle-explorer-collapse','cycle-discard','cycle-fit','cycle-zoom-in','cycle-zoom-out','cycle-actual','close-dialog','help','apply-json','apply-json-drop','reset-json','restore','skip-restore','discard-form','doc-description','toggle-sidebar','toggle-inspector','cycle-header','layout-settings','layout-reset','layout-maximize','graph-wide']);
-document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;e.stopPropagation();if(!noFlush.has(b.dataset.action)&&!flush())return;actions[b.dataset.action]?.(b);});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;e.stopPropagation();if(!noFlush.has(b.dataset.action)&&!flush())return;actions[b.dataset.action]?.(b,e);});
 function bindNodeClicks(root){
   [...root.querySelectorAll('.tree-row,[data-node]:not(.tree-row)')].forEach(el=>el.addEventListener('click',e=>{if(e.target.closest('[data-action],[data-collapse]'))return;if(e.target.closest('[data-node]')!==el)return;e.stopPropagation();selectNode(el.dataset.node,{ctrlKey:e.ctrlKey,metaKey:e.metaKey,shiftKey:e.shiftKey,checkbox:!!e.target.closest('[data-select]'),tree:!!el.dataset.tree});}));
 }
@@ -386,6 +386,8 @@ $('#fileInput').addEventListener('change',async e=>{const f=e.target.files[0];tr
 $('#baselineInput').addEventListener('change',async e=>{const f=e.target.files[0];try{if(f){if(f.size>20*1024*1024)throw Error('20MB以下のJSONファイルを選択してください。');const parsed=parseInput(await f.text());comparison=parsed;comparisonName=f.name;diffFilter='all';tab='compare';render();toast('比較基準を読み込みました。編集中の文書は変更していません。');}}catch(err){error(err);}e.target.value='';});
 $('#dialog').addEventListener('cancel',()=>{if($('#nodeType'))$('#nodeType').value=current().type;pendingTransform=null;});
 window.addEventListener('beforeunload',e=>{if(dirty||formDirty||rawDirty||cycleUI.dirty()){e.preventDefault();e.returnValue='';}});
+document.addEventListener('copy',e=>cycleUI.copyEvent(e));
+document.addEventListener('paste',e=>cycleUI.pasteEvent(e));
 document.addEventListener('keydown',e=>{
   if($('#dialog').open)return;
   if(cycleUI.keydown(e)){e.preventDefault();return;}

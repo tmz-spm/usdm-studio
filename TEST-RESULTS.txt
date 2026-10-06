@@ -1,6 +1,6 @@
-USDM Studio v1.12.0 verification — 2026-10-05
+USDM Studio v1.13.0 verification — 2026-10-06
 
-Model + graph + review/diff + transformations + cycles: 64/64 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 72/72 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
@@ -11,7 +11,8 @@ v1.9 browser: 9 scenarios passed (Chrome headless)
 v1.10 browser: 9 scenarios passed (Chrome headless)
 v1.11 browser: 13 scenarios passed (Chrome headless)
 v1.12 browser: 14 scenarios passed (Chrome headless)
-Total: 182 checks passed
+v1.13 browser: 14 scenarios passed (Chrome headless)
+Total: 204 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -133,3 +134,17 @@ External network requests during operation: 0
 116. PASS Return arrows and self loops expose movable endpoints and retain their labels
 117. PASS Inserting at an adjusted arrow preserves the original nodes endpoint positions and is reversible
 118. PASS Project JSON editing, reload and display keep endpoint and hidden-line settings without extra network activity
+119. PASS Ctrl+A selects every flow node and internal arrow, and the explorer reflects the selection
+120. PASS Ctrl and Shift clicks add and remove individual nodes, including in the focused explorer
+121. PASS Native Ctrl+C and Ctrl+V transfer a selection between independent browser tabs with no shared app storage
+122. PASS Toolbar Copy and Paste use the shared clipboard and repeated pastes have distinct identities
+123. PASS Pasting in another diagram within the same document preserves valid reference links
+124. PASS A paste and a group move each undo and redo as one edit, preserving relative positions and manual anchors
+125. PASS Delete removes only selected flow nodes and incident arrows, retains diagram-wide rules, and supports Undo
+126. PASS Text fields retain normal select-all, copy and paste instead of invoking flow operations
+127. PASS Unapplied properties are copied after validation and invalid drafts block copying without losing the draft
+128. PASS Invalid clipboard data is rejected without changing nodes, details, connections or the current selection
+129. PASS Browser clipboard API denial offers keyboard-based copy and paste instead of a tab-local clipboard
+130. PASS A delayed clipboard read cannot paste into a different diagram after tab switching
+131. PASS Saved pasted flows reload without a new project format and remain editable in tree and diagram views
+132. PASS Copy controls remain visible and the page stays within desktop and narrow viewport widths
