@@ -1,5 +1,7 @@
 export const ACTIVITY_KINDS={start:'開始点',action:'アクション',decision:'分岐',merge:'合流',fork:'並行分岐',join:'同期',end:'アクティビティ終了',reference:'別フロー参照'};
 export const isActivity=d=>d.diagramType==='activity';
+export const isActivityBar=kind=>['fork','join'].includes(kind);
+export const activityBarBounds=orientation=>orientation==='vertical'?{x:94,y:6,width:12,height:96}:{x:20,y:48,width:160,height:12};
 export const diagramLabel=d=>isActivity(d)?'UMLアクティビティ図':'サイクル図';
 export const activityKind=kind=>Object.hasOwn(ACTIVITY_KINDS,kind)?kind:'action';
 export const cycleKind=kind=>kind==='merge'?'decision':['fork','join'].includes(kind)?'action':kind;
@@ -8,7 +10,7 @@ export function convertDiagram(d,type){
   if(!['cycle','activity'].includes(type))throw Error('図の種類が不正です。');
   if((d.diagramType||'cycle')===type)return;
   d.diagramType=type;
-  for(const n of d.nodes){n.kind=type==='activity'?activityKind(n.kind):cycleKind(n.kind);}
+  for(const n of d.nodes){n.kind=type==='activity'?activityKind(n.kind):cycleKind(n.kind);if(!isActivityBar(n.kind))delete n.barOrientation;}
   if(type==='cycle')delete d.plantUml;
 }
 export function activityIssues(d){
@@ -99,10 +101,10 @@ export function removeLane(d,id){
   const before=laneGeometry(d);d.lanes=(d.lanes||[]).filter(l=>l.id!==id);const after=laneGeometry(d),outside=after.length?Math.min(20000,after.at(-1).x+after.at(-1).width+60):null;
   for(const n of d.nodes){if(n.laneId===id){delete n.laneId;if(outside!==null)n.x=outside;}else if(n.laneId)n.x+=after.find(l=>l.id===n.laneId).x-before.find(l=>l.id===n.laneId).x;}
 }
-export function activityShape(kind){
+export function activityShape(kind,barOrientation){
   if(kind==='start')return '<circle class="uml-solid" cx="100" cy="54" r="15"/>';
   if(kind==='end')return '<circle cx="100" cy="54" r="21"/><circle class="uml-solid" cx="100" cy="54" r="14"/>';
-  if(['fork','join'].includes(kind))return '<rect class="uml-solid" x="20" y="48" width="160" height="12" rx="1"/>';
+  if(isActivityBar(kind)){const b=activityBarBounds(barOrientation);return `<rect class="uml-solid" x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" rx="1"/>`;}
   if(['decision','merge'].includes(kind))return '<polygon points="100,3 197,54 100,105 3,54"/>';
   return '<rect x="3" y="3" width="194" height="102" rx="18"/>'+(kind==='reference'?'<path class="reference-bars" d="M15 10V98 M185 10V98"/>':'');
 }

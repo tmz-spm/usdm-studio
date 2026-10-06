@@ -83,7 +83,7 @@ try{
     await page.locator('#jsonEditor').fill(JSON.stringify({...p.document,categories:[{name:'＜所属先を変更＞',requirements:[]}]}));await action('apply-json').click();await expect(page.locator('#dialog')).toContainText('サイクル図');await action('close-dialog').click();await action('reset-json').click();
   });
   await check('Standard export explains omitted diagrams while document preview includes detailed behavior',async()=>{
-    await action('export').click();await expect(page.locator('#dialog')).toContainText('サイクル図とその詳細仕様・挙動');await action('close-dialog').click();
+    await action('export').click();await expect(page.locator('#dialog')).toContainText('サイクル図・UML図とその詳細仕様・挙動・ルールを含められません');await action('close-dialog').click();
     await tab('document');await expect(page.locator('.document-view')).toContainText('全員のロード完了後にカウントダウンを開始する');await expect(page.locator('.document-view')).toContainText('参加者を待つ');await tab('graph');await graphNode(first).click();
   });
   await check('Node deletion also removes its nested details and incident arrows, and undo restores the whole node',async()=>{

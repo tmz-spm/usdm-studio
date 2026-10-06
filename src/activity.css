@@ -13,6 +13,8 @@
 .uml-node.start .cycle-node-details,.uml-node.end .cycle-node-details,.uml-node.fork .cycle-node-details,.uml-node.join .cycle-node-details{font-size:8px}
 .uml-node.start .cycle-node-text,.uml-node.end .cycle-node-text{position:absolute;left:0;top:37px;width:70px;text-align:right;-webkit-line-clamp:2}
 .uml-node.start .cycle-node-details,.uml-node.end .cycle-node-details{position:absolute;left:0;top:70px;width:70px;text-align:right}
+.uml-node.vertical-bar .cycle-node-text{position:absolute;left:0;top:29px;width:80px;text-align:right;-webkit-line-clamp:3}
+.uml-node.vertical-bar .cycle-node-details{position:absolute;left:0;top:76px;width:80px;text-align:right}
 .uml-node.merge{padding:20px 43px;gap:2px}.uml-node.merge .cycle-node-text{font-size:11px}
 .uml-node.selected .cycle-node-shape>*,.uml-node.connecting .cycle-node-shape>*{stroke:#188ac8;stroke-width:3.5}
 .cycle-edge.selected .cycle-edge-hit,.cycle-edge.selected text{cursor:move}

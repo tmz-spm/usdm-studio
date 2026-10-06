@@ -1,4 +1,4 @@
-import {ACTIVITY_KINDS,isActivity,diagramLabel,plantUml,laneGeometry,laneAt} from './activity.js';
+import {ACTIVITY_KINDS,isActivity,isActivityBar,activityBarBounds,diagramLabel,plantUml,laneGeometry,laneAt} from './activity.js';
 export const diagramKinds=d=>isActivity(d)?ACTIVITY_KINDS:CYCLE_KINDS;
 export const defaultCycleKind=d=>isActivity(d)?'action':'phase';
 export const CYCLE_OWNERS=new Set(['category','requirementGroup','specificationGroup']);
@@ -21,7 +21,7 @@ export function detailRows(details){
 }
 export function detailHolder(d,nodeId=''){const holder=nodeId?d.nodes.find(n=>n.id===nodeId):d;if(!holder)throw Error('詳細の所属先がありません。');return holder;}
 export function cycleRules(d){return [{nodeId:'',scope:'図全体',details:d.details||[]},...d.nodes.map(n=>({nodeId:n.id,scope:n.text,details:n.details}))].flatMap(h=>detailRows(h.details).filter(r=>r.item.kind==='rule').map(r=>({...r,nodeId:h.nodeId,scope:h.scope})));}
-export function cycleFormatVersion(cycles){const diagrams=Object.values(cycles).flat();if(diagrams.some(d=>d.diagramType||d.lanes||d.plantUml!==undefined||d.nodes.some(n=>n.laneId)||d.edges.some(e=>e.route)))return 5;if(diagrams.some(d=>d.nodes.some(n=>Object.hasOwn(n,'tailHidden'))||d.edges.some(e=>Object.hasOwn(e,'sourceAnchor')||Object.hasOwn(e,'targetAnchor'))))return 4;return diagrams.some(d=>Object.hasOwn(d,'details')||d.nodes.some(n=>['input','event','reference'].includes(n.kind)||detailRows(n.details).some(r=>r.item.kind==='rule')))?3:2;}
+export function cycleFormatVersion(cycles){const diagrams=Object.values(cycles).flat();if(diagrams.some(d=>d.nodes.some(n=>Object.hasOwn(n,'barOrientation'))))return 6;if(diagrams.some(d=>d.diagramType||d.lanes||d.plantUml!==undefined||d.nodes.some(n=>n.laneId)||d.edges.some(e=>e.route)))return 5;if(diagrams.some(d=>d.nodes.some(n=>Object.hasOwn(n,'tailHidden'))||d.edges.some(e=>Object.hasOwn(e,'sourceAnchor')||Object.hasOwn(e,'targetAnchor'))))return 4;return diagrams.some(d=>Object.hasOwn(d,'details')||d.nodes.some(n=>['input','event','reference'].includes(n.kind)||detailRows(n.details).some(r=>r.item.kind==='rule')))?3:2;}
 export function cycleReferenceIssues(cycles){const diagrams=Object.values(cycles).flat(),ids=new Set(diagrams.map(d=>d.id));return diagrams.flatMap(d=>d.nodes.filter(n=>n.kind==='reference'&&(!n.reference||!ids.has(n.reference))).map(n=>`「${d.title}」の「${n.text}」：${n.reference?'参照先の図が見つかりません':'参照先の図が未設定です'}。`));}
 export function validateCycleMap(rows,cycles){
   if(!object(cycles))throw Error('サイクル図の保存形式が不正です。');
@@ -38,7 +38,8 @@ export function validateCycleMap(rows,cycles){
       const checkDetails=items=>{if(!Array.isArray(items))throw Error('詳細仕様・挙動・ルールは配列にしてください。');const queue=[...items];while(queue.length){const item=queue.pop();fields(item,['id','kind','text','children'],[],'詳細仕様・挙動・ルール');id(item.id,details,'詳細');if(!Object.hasOwn(DETAIL_KINDS,item.kind))throw Error('詳細の種類が不正です。');string(item.text,'詳細の内容',true);if(!Array.isArray(item.children))throw Error('詳細の子要素は配列にしてください。');queue.push(...item.children);}};
       if(Object.hasOwn(d,'details'))checkDetails(d.details);
       for(const n of d.nodes){
-        fields(n,['id','kind','text','description','x','y','details'],['reference','tailHidden','laneId'],'フローノード');id(n.id,nodes,'ノード');
+        fields(n,['id','kind','text','description','x','y','details'],['reference','tailHidden','laneId','barOrientation'],'フローノード');id(n.id,nodes,'ノード');
+        if(Object.hasOwn(n,'barOrientation')&&(!isActivity(d)||!isActivityBar(n.kind)||!['horizontal','vertical'].includes(n.barOrientation)))throw Error('棒の向きはUMLの並行分岐・同期ノードで横または縦を指定してください。');
         if(Object.hasOwn(n,'tailHidden')&&typeof n.tailHidden!=='boolean')throw Error('末端の追加用の線の非表示設定は真偽値にしてください。');
         if(n.laneId!==undefined&&!lanes.has(n.laneId))throw Error('ノードの役割がありません。');
         if(!Object.hasOwn(diagramKinds(d),n.kind))throw Error('ノードの種類が不正です。');
@@ -53,7 +54,7 @@ export function validateCycleMap(rows,cycles){
   return true;
 }
 export function createCycle(title='新しいサイクル図',diagramType='cycle'){return {id:uid('cycle'),title,description:'',nodes:[],edges:[],...(diagramType==='activity'?{diagramType,lanes:[]}: {})};}
-export function createCycleNode(kind='phase',x=80,y=100){if(!Object.hasOwn({...CYCLE_KINDS,...ACTIVITY_KINDS},kind))throw Error('ノードの種類が不正です。');return {id:uid('node'),kind,text:'新しい'+(CYCLE_KINDS[kind]||ACTIVITY_KINDS[kind]),description:'',x,y,details:[],...(kind==='reference'?{reference:''}:{})};}
+export function createCycleNode(kind='phase',x=80,y=100){if(!Object.hasOwn({...CYCLE_KINDS,...ACTIVITY_KINDS},kind))throw Error('ノードの種類が不正です。');return {id:uid('node'),kind,text:'新しい'+(CYCLE_KINDS[kind]||ACTIVITY_KINDS[kind]),description:'',x,y,details:[],...(kind==='reference'?{reference:''}:{}),...(isActivityBar(kind)?{barOrientation:'vertical'}:{})};}
 export function createDetail(kind='specification'){if(!Object.hasOwn(DETAIL_KINDS,kind))throw Error('詳細の種類が不正です。');return {id:uid('detail'),kind,text:'新しい'+DETAIL_KINDS[kind],children:[]};}
 export function connectCycle(d,source,target,label=''){if(!d.nodes.some(n=>n.id===source)||!d.nodes.some(n=>n.id===target))throw Error('接続するノードを選択してください。');const edge={id:uid('edge'),source,target,label};d.edges.push(edge);return edge;}
 export function removeCycleNode(d,id){d.nodes=d.nodes.filter(n=>n.id!==id);d.edges=d.edges.filter(e=>e.source!==id&&e.target!==id);}
@@ -124,7 +125,7 @@ export function cycleAnchorPoint(node,anchor,activity=false){
   const angle=anchor.angle*Math.PI/180,dx=Math.cos(angle),dy=Math.sin(angle),cx=node.x+100,cy=node.y+54;
   const polygons={input:[[24,3],[197,3],[176,105],[3,105]],event:[[24,3],[176,3],[197,54],[176,105],[24,105],[3,54]],decision:[[100,3],[197,54],[100,105],[3,54]]};
   if(activity&&['start','end'].includes(node.kind)){const radius=node.kind==='start'?15:21;return {x:cx+dx*radius,y:cy+dy*radius,nx:dx,ny:dy};}
-  if(activity&&['fork','join'].includes(node.kind)){const t=Math.min(80/Math.abs(dx),6/Math.abs(dy));return {x:cx+dx*t,y:cy+dy*t,nx:Math.abs(dx*t)>79.999?Math.sign(dx):0,ny:Math.abs(dy*t)>5.999?Math.sign(dy):0};}
+  if(activity&&isActivityBar(node.kind)){const b=activityBarBounds(node.barOrientation),hw=b.width/2,hh=b.height/2,t=Math.min(hw/Math.abs(dx),hh/Math.abs(dy));return {x:cx+dx*t,y:cy+dy*t,nx:Math.abs(dx*t)>hw-.001?Math.sign(dx):0,ny:Math.abs(dy*t)>hh-.001?Math.sign(dy):0};}
   const polygon=polygons[node.kind]||(activity&&node.kind==='merge'?polygons.decision:null);let t,nx=0,ny=0;
   if(polygon){
     const hits=[];

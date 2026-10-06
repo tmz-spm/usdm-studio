@@ -1,6 +1,6 @@
-USDM Studio v1.14.0 verification — 2026-10-06
+USDM Studio v1.14.1 verification — 2026-10-06
 
-Model + graph + review/diff + transformations + cycles: 90/90 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 97/97 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
@@ -13,8 +13,9 @@ v1.11 browser: 13 scenarios passed (Chrome headless)
 v1.12 browser: 14 scenarios passed (Chrome headless)
 v1.13 browser: 14 scenarios passed (Chrome headless)
 v1.14 browser: 16 scenarios passed (Chrome headless)
+v1.14.1 browser: 7 scenarios passed (Chrome headless)
 PlantUML: 10 generated diagrams rendered successfully (PlantUML version 1.2026.8 / 149874a [2026-09-05 15:59:17 UTC])
-Total: 248 checks passed
+Total: 262 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -166,13 +167,20 @@ External network requests during operation: 0
 146. PASS Route dragging accounts for zoom and scrolling, flushes edited conditions and cancels a pointer preview
 147. PASS UML decision guards use brackets and the selected-line plus still inserts an editable UML action
 148. PASS Activity controls remain usable at desktop and narrow widths without page overflow or external requests
-149. PASS PlantUML: swimlanes
-150. PASS PlantUML: branch-loop
-151. PASS PlantUML: fork-join
-152. PASS PlantUML: multiple-initials
-153. PASS PlantUML: disconnected
-154. PASS PlantUML: self-loop
-155. PASS PlantUML: empty
-156. PASS PlantUML: unfinished
-157. PASS PlantUML: draft-final-edge
-158. PASS PlantUML: literal-labels
+149. PASS New synchronization and fork nodes default to vertical bars with a rightward terminal line
+150. PASS Orientation properties rotate the bar and reattach the existing edge without changing its route or content
+151. PASS Legacy bars remain horizontal and retain project v5 until a direction is explicitly applied
+152. PASS Changing to a bar offers vertical by default, and leaving the bar kind warns before removing its setting
+153. PASS Saving, reopening and copying through the real clipboard to another browser tab retain both bar directions
+154. PASS The rightward plus on a vertical bar appends and connects an action while retaining bar orientation
+155. PASS Vertical labels remain clear of the bar and tail, and both orientations stay usable in the properties panel
+156. PASS PlantUML: swimlanes
+157. PASS PlantUML: branch-loop
+158. PASS PlantUML: fork-join
+159. PASS PlantUML: multiple-initials
+160. PASS PlantUML: disconnected
+161. PASS PlantUML: self-loop
+162. PASS PlantUML: empty
+163. PASS PlantUML: unfinished
+164. PASS PlantUML: draft-final-edge
+165. PASS PlantUML: literal-labels
