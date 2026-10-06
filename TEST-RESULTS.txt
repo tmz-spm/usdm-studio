@@ -1,6 +1,6 @@
-USDM Studio v1.14.1 verification — 2026-10-06
+USDM Studio v1.15.0 verification — 2026-10-06
 
-Model + graph + review/diff + transformations + cycles: 97/97 tests passed (node --test)
+Model + graph + review/diff + transformations + cycles: 109/109 tests passed (node --test)
 Browser: 18 scenarios passed (Chrome headless)
 Graph browser: 11 scenarios passed (Chrome headless)
 v1.5 browser: 9 scenarios passed (Chrome headless)
@@ -14,8 +14,9 @@ v1.12 browser: 14 scenarios passed (Chrome headless)
 v1.13 browser: 14 scenarios passed (Chrome headless)
 v1.14 browser: 16 scenarios passed (Chrome headless)
 v1.14.1 browser: 7 scenarios passed (Chrome headless)
+v1.15 browser: 11 scenarios passed (Chrome headless)
 PlantUML: 10 generated diagrams rendered successfully (PlantUML version 1.2026.8 / 149874a [2026-09-05 15:59:17 UTC])
-Total: 262 checks passed
+Total: 285 checks passed
 JavaScript page errors: 0
 External network requests during operation: 0
 
@@ -174,13 +175,24 @@ External network requests during operation: 0
 153. PASS Saving, reopening and copying through the real clipboard to another browser tab retain both bar directions
 154. PASS The rightward plus on a vertical bar appends and connects an action while retaining bar orientation
 155. PASS Vertical labels remain clear of the bar and tail, and both orientations stay usable in the properties panel
-156. PASS PlantUML: swimlanes
-157. PASS PlantUML: branch-loop
-158. PASS PlantUML: fork-join
-159. PASS PlantUML: multiple-initials
-160. PASS PlantUML: disconnected
-161. PASS PlantUML: self-loop
-162. PASS PlantUML: empty
-163. PASS PlantUML: unfinished
-164. PASS PlantUML: draft-final-edge
-165. PASS PlantUML: literal-labels
+156. PASS Lane properties switch all roles into horizontal rows with left headings and preserve all specifications
+157. PASS Diagram-wide orientation is also available in cycle mode and can return to columns
+158. PASS Dragging a column boundary resizes its width, moves the following column and attached arrows, and undoes as one edit
+159. PASS Dragging row boundaries changes heights and moves later rows while clamping at a usable minimum
+160. PASS The outer right edge of rows and bottom edge of columns resize the shared length without moving nodes
+161. PASS Escape and pointer cancellation discard resize previews and leave saved layout unchanged
+162. PASS Boundary dragging follows diagram coordinates after zoom and scrolling and keyboard resizing supports coarse steps
+163. PASS Pending role edits apply before dragging while invalid role drafts block resizing without losing the draft
+164. PASS Horizontal node dragging, row reordering and new roles retain membership and expose up and down controls
+165. PASS JSON reopening and clipboard transfer to another browser tab retain horizontal roles and resized dimensions
+166. PASS Rows and their border controls remain usable at desktop and narrow sizes without external requests
+167. PASS PlantUML: swimlanes
+168. PASS PlantUML: branch-loop
+169. PASS PlantUML: fork-join
+170. PASS PlantUML: multiple-initials
+171. PASS PlantUML: disconnected
+172. PASS PlantUML: self-loop
+173. PASS PlantUML: empty
+174. PASS PlantUML: unfinished
+175. PASS PlantUML: draft-final-edge
+176. PASS PlantUML: literal-labels

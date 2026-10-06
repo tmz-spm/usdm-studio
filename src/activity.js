@@ -84,23 +84,8 @@ export function plantUml(d){
 }
 export function syncPlantUml(cycles){for(const d of Object.values(cycles).flat())if(isActivity(d))d.plantUml=plantUml(d);}
 
-export function laneGeometry(d){let x=40;return (d.lanes||[]).map(l=>{const result={...l,x,width:l.width||300};x+=result.width;return result;});}
-export function laneAt(d,x){return laneGeometry(d).find(l=>x>=l.x&&x<l.x+l.width);}
-export function createLane(d,name='新しい役割'){const lane={id:'lane_'+crypto.randomUUID(),name,width:300};(d.lanes??=[]).push(lane);return lane;}
-export function assignLane(d,ids,laneId){
-  const lane=laneGeometry(d).find(l=>l.id===laneId);if(laneId&&!lane)throw Error('役割の区画がありません。');
-  const nodes=d.nodes.filter(n=>ids.includes(n.id));
-  for(const n of nodes){
-    if(!lane){delete n.laneId;continue;}
-    n.laneId=lane.id;n.x=Math.round(lane.x+(lane.width-200)/2);n.y=Math.max(110,n.y);
-    while(d.nodes.some(other=>other!==n&&other.laneId===lane.id&&Math.abs(other.y-n.y)<138)){n.y+=158;if(n.y>20000)throw Error('役割内に配置する空きがありません。');}
-  }
-}
-export function moveLane(d,id,delta){const i=(d.lanes||[]).findIndex(l=>l.id===id),j=i+delta;if(i<0||j<0||j>=d.lanes.length)return;const before=new Map(laneGeometry(d).map(l=>[l.id,l.x]));d.lanes.splice(j,0,d.lanes.splice(i,1)[0]);const after=laneGeometry(d);for(const n of d.nodes)if(n.laneId)n.x+=after.find(l=>l.id===n.laneId).x-before.get(n.laneId);}
-export function removeLane(d,id){
-  const before=laneGeometry(d);d.lanes=(d.lanes||[]).filter(l=>l.id!==id);const after=laneGeometry(d),outside=after.length?Math.min(20000,after.at(-1).x+after.at(-1).width+60):null;
-  for(const n of d.nodes){if(n.laneId===id){delete n.laneId;if(outside!==null)n.x=outside;}else if(n.laneId)n.x+=after.find(l=>l.id===n.laneId).x-before.find(l=>l.id===n.laneId).x;}
-}
+export {horizontalLanes,laneSize,laneSpan,laneLength,laneLengthLimits,laneSizeLimits,laneGeometry,laneAt,createLane,containLaneNode,growLaneLength,assignLane,resizeLane,resizeLaneLength,setLaneOrientation,moveLane,removeLane,laneResizePreview} from './lanes.js';
+
 export function activityShape(kind,barOrientation){
   if(kind==='start')return '<circle class="uml-solid" cx="100" cy="54" r="15"/>';
   if(kind==='end')return '<circle cx="100" cy="54" r="21"/><circle class="uml-solid" cx="100" cy="54" r="14"/>';

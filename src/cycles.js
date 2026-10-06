@@ -1,4 +1,4 @@
-import {ACTIVITY_KINDS,isActivity,isActivityBar,activityBarBounds,diagramLabel,plantUml,laneGeometry,laneAt} from './activity.js';
+import {ACTIVITY_KINDS,isActivity,isActivityBar,activityBarBounds,diagramLabel,plantUml,laneGeometry,laneAt,containLaneNode,growLaneLength} from './activity.js';
 export const diagramKinds=d=>isActivity(d)?ACTIVITY_KINDS:CYCLE_KINDS;
 export const defaultCycleKind=d=>isActivity(d)?'action':'phase';
 export const CYCLE_OWNERS=new Set(['category','requirementGroup','specificationGroup']);
@@ -21,7 +21,7 @@ export function detailRows(details){
 }
 export function detailHolder(d,nodeId=''){const holder=nodeId?d.nodes.find(n=>n.id===nodeId):d;if(!holder)throw Error('詳細の所属先がありません。');return holder;}
 export function cycleRules(d){return [{nodeId:'',scope:'図全体',details:d.details||[]},...d.nodes.map(n=>({nodeId:n.id,scope:n.text,details:n.details}))].flatMap(h=>detailRows(h.details).filter(r=>r.item.kind==='rule').map(r=>({...r,nodeId:h.nodeId,scope:h.scope})));}
-export function cycleFormatVersion(cycles){const diagrams=Object.values(cycles).flat();if(diagrams.some(d=>d.nodes.some(n=>Object.hasOwn(n,'barOrientation'))))return 6;if(diagrams.some(d=>d.diagramType||d.lanes||d.plantUml!==undefined||d.nodes.some(n=>n.laneId)||d.edges.some(e=>e.route)))return 5;if(diagrams.some(d=>d.nodes.some(n=>Object.hasOwn(n,'tailHidden'))||d.edges.some(e=>Object.hasOwn(e,'sourceAnchor')||Object.hasOwn(e,'targetAnchor'))))return 4;return diagrams.some(d=>Object.hasOwn(d,'details')||d.nodes.some(n=>['input','event','reference'].includes(n.kind)||detailRows(n.details).some(r=>r.item.kind==='rule')))?3:2;}
+export function cycleFormatVersion(cycles){const diagrams=Object.values(cycles).flat();if(diagrams.some(d=>d.laneOrientation!==undefined||d.laneLength!==undefined||d.lanes?.some(l=>l.height!==undefined)))return 7;if(diagrams.some(d=>d.nodes.some(n=>Object.hasOwn(n,'barOrientation'))))return 6;if(diagrams.some(d=>d.diagramType||d.lanes||d.plantUml!==undefined||d.nodes.some(n=>n.laneId)||d.edges.some(e=>e.route)))return 5;if(diagrams.some(d=>d.nodes.some(n=>Object.hasOwn(n,'tailHidden'))||d.edges.some(e=>Object.hasOwn(e,'sourceAnchor')||Object.hasOwn(e,'targetAnchor'))))return 4;return diagrams.some(d=>Object.hasOwn(d,'details')||d.nodes.some(n=>['input','event','reference'].includes(n.kind)||detailRows(n.details).some(r=>r.item.kind==='rule')))?3:2;}
 export function cycleReferenceIssues(cycles){const diagrams=Object.values(cycles).flat(),ids=new Set(diagrams.map(d=>d.id));return diagrams.flatMap(d=>d.nodes.filter(n=>n.kind==='reference'&&(!n.reference||!ids.has(n.reference))).map(n=>`「${d.title}」の「${n.text}」：${n.reference?'参照先の図が見つかりません':'参照先の図が未設定です'}。`));}
 export function validateCycleMap(rows,cycles){
   if(!object(cycles))throw Error('サイクル図の保存形式が不正です。');
@@ -29,11 +29,13 @@ export function validateCycleMap(rows,cycles){
   for(const [owner,diagrams] of Object.entries(cycles)){
     if(!owners.has(owner)||!Array.isArray(diagrams))throw Error('サイクル図の所属先はカテゴリ・要求グループ・仕様グループにしてください。');
     for(const d of diagrams){
-      fields(d,['id','title','description','nodes','edges'],['details','diagramType','lanes','plantUml']);id(d.id,diagramIds,'サイクル図');string(d.title,'図の名前',true);string(d.description,'図の説明');
+      fields(d,['id','title','description','nodes','edges'],['details','diagramType','lanes','plantUml','laneOrientation','laneLength']);id(d.id,diagramIds,'サイクル図');string(d.title,'図の名前',true);string(d.description,'図の説明');
       if(!Array.isArray(d.nodes)||!Array.isArray(d.edges))throw Error('ノードと矢印は配列にしてください。');
       if(d.diagramType!==undefined&&!['cycle','activity'].includes(d.diagramType))throw Error('図の種類が不正です。');
       if(d.plantUml!==undefined&&(!isActivity(d)||typeof d.plantUml!=='string'))throw Error('PlantUMLはUML図の文字列にしてください。');
-      const lanes=new Set();if(d.lanes!==undefined){if(!Array.isArray(d.lanes))throw Error('役割は配列にしてください。');let total=40;for(const lane of d.lanes){fields(lane,['id','name','width'],[],'役割');id(lane.id,lanes,'役割');string(lane.name,'役割名',true);if(!Number.isFinite(lane.width)||lane.width<260||lane.width>2000)throw Error('役割の幅は260〜2000にしてください。');total+=lane.width;}if(total>20000)throw Error('役割の全幅は20000以下にしてください。');}
+      if(d.laneOrientation!==undefined&&!['vertical','horizontal'].includes(d.laneOrientation))throw Error('役割区画の向きが不正です。');
+      if(d.laneLength!==undefined&&(!Number.isFinite(d.laneLength)||d.laneLength<400||d.laneLength>20000))throw Error('役割区画の長さは400〜20000にしてください。');
+      const lanes=new Set();if(d.lanes!==undefined){if(!Array.isArray(d.lanes))throw Error('役割は配列にしてください。');let total=40;for(const lane of d.lanes){fields(lane,['id','name','width'],['height'],'役割');id(lane.id,lanes,'役割');string(lane.name,'役割名',true);if(!Number.isFinite(lane.width)||lane.width<260||lane.width>2000)throw Error('役割の幅は260〜2000にしてください。');if(lane.height!==undefined&&(!Number.isFinite(lane.height)||lane.height<180||lane.height>2000))throw Error('役割の高さは180〜2000にしてください。');total+=d.laneOrientation==='horizontal'?(lane.height??240):lane.width;}if(total>20000)throw Error('役割の全幅は20000以下にしてください。');}
       const nodes=new Set(),edges=new Set(),details=new Set();
       const checkDetails=items=>{if(!Array.isArray(items))throw Error('詳細仕様・挙動・ルールは配列にしてください。');const queue=[...items];while(queue.length){const item=queue.pop();fields(item,['id','kind','text','children'],[],'詳細仕様・挙動・ルール');id(item.id,details,'詳細');if(!Object.hasOwn(DETAIL_KINDS,item.kind))throw Error('詳細の種類が不正です。');string(item.text,'詳細の内容',true);if(!Array.isArray(item.children))throw Error('詳細の子要素は配列にしてください。');queue.push(...item.children);}};
       if(Object.hasOwn(d,'details'))checkDetails(d.details);
@@ -69,18 +71,18 @@ export function insertCycleOnEdge(d,edgeId,{kind=defaultCycleKind(d),text}={}){
   const e=d.edges.find(e=>e.id===edgeId);if(!e)throw Error('挿入先の矢印がありません。');
   const geometry=cycleGeometry(d).edges.find(x=>x.id===edgeId),position=freeCyclePosition(d,geometry.insertX-CYCLE_NODE.width/2,geometry.insertY-CYCLE_NODE.height/2),n=createCycleNode(kind,position.x,position.y);
   if(text!==undefined)n.text=text;
-  const lane=laneAt(d,n.x+100);if(lane)n.laneId=lane.id;delete e.route;
+  const lane=laneAt(d,n.x+100,n.y+54);if(lane)containLaneNode(d,n,lane,true);delete e.route;
   const target=e.target;d.nodes.splice(d.nodes.findIndex(n=>n.id===e.source)+1,0,n);e.target=n.id;
-  const next=connectCycle(d,n.id,target);if(e.targetAnchor){next.targetAnchor=e.targetAnchor;delete e.targetAnchor;}return {node:n,edge:next};
+  const next=connectCycle(d,n.id,target);if(e.targetAnchor){next.targetAnchor=e.targetAnchor;delete e.targetAnchor;}growLaneLength(d);return {node:n,edge:next};
 }
 export function appendCycleNode(d,sourceId,{kind=defaultCycleKind(d),text,label=''}={}){
   const source=d.nodes.find(n=>n.id===sourceId);if(!source)throw Error('接続元のノードがありません。');
   const point=freeCyclePosition(d,source.x+CYCLE_NODE.width+90,source.y),n=createCycleNode(kind,point.x,point.y);if(text!==undefined)n.text=text;
-  const lane=laneAt(d,n.x+100);if(lane)n.laneId=lane.id;d.nodes.splice(d.nodes.indexOf(source)+1,0,n);connectCycle(d,source.id,n.id,label);return {diagramId:d.id,selection:{kind:'node',id:n.id}};
+  const lane=laneAt(d,n.x+100,n.y+54);if(lane)containLaneNode(d,n,lane,true);d.nodes.splice(d.nodes.indexOf(source)+1,0,n);connectCycle(d,source.id,n.id,label);growLaneLength(d);return {diagramId:d.id,selection:{kind:'node',id:n.id}};
 }
 export function appendCycleHierarchy(rows,cycles,key,{kind,text}={}){
   const r=cycleRows(rows,cycles).find(r=>r.node._key===key);if(!r)throw Error('追加先の項目がありません。');const d=r.diagram;
-  if(r.type==='cycle'){const count=d.nodes.length,p=freeCyclePosition(d,80+(count%3)*290,110+Math.floor(count/3)*200),n=createCycleNode(kind||defaultCycleKind(d),p.x,p.y);if(text!==undefined)n.text=text;const lane=laneAt(d,n.x+100);if(lane)n.laneId=lane.id;d.nodes.push(n);return {diagramId:d.id,selection:{kind:'node',id:n.id}};}
+  if(r.type==='cycle'){const count=d.nodes.length,p=freeCyclePosition(d,80+(count%3)*290,110+Math.floor(count/3)*200),n=createCycleNode(kind||defaultCycleKind(d),p.x,p.y);if(text!==undefined)n.text=text;const lane=laneAt(d,n.x+100,n.y+54);if(lane)containLaneNode(d,n,lane,true);d.nodes.push(n);growLaneLength(d);return {diagramId:d.id,selection:{kind:'node',id:n.id}};}
   const nodeId=r.selection.kind==='node'?r.selection.id:r.selection.nodeId||'',holder=detailHolder(d,nodeId),list=r.selection.kind==='detail'?detailRows(holder.details||[]).find(x=>x.item.id===r.selection.id).item.children:(holder.details??=[]),item=createDetail(kind||'specification');if(text!==undefined)item.text=text;list.push(item);return {diagramId:d.id,selection:{kind:'detail',nodeId,id:item.id}};
 }
 export function insertCycleHierarchy(rows,cycles,key,{position='after',kind,text}={}){
@@ -92,7 +94,7 @@ export function insertCycleHierarchy(rows,cycles,key,{position='after',kind,text
   const d=r.diagram;
   if(r.selection.kind==='node'){
     const index=d.nodes.findIndex(n=>n.id===r.selection.id),reference=d.nodes[index],point=freeCyclePosition(d,reference.x+(position==='after'?260:-260),reference.y),n=createCycleNode(kind||reference.kind,point.x,point.y);
-    if(text!==undefined)n.text=text;const lane=laneAt(d,n.x+100);if(lane)n.laneId=lane.id;d.nodes.splice(index+(position==='after'?1:0),0,n);return {diagramId:d.id,selection:{kind:'node',id:n.id}};
+    if(text!==undefined)n.text=text;const lane=laneAt(d,n.x+100,n.y+54);if(lane)containLaneNode(d,n,lane,true);d.nodes.splice(index+(position==='after'?1:0),0,n);growLaneLength(d);return {diagramId:d.id,selection:{kind:'node',id:n.id}};
   }
   const n=detailHolder(d,r.selection.nodeId),row=detailRows(n.details).find(x=>x.item.id===r.selection.id),item=createDetail(kind||row.item.kind);
   if(text!==undefined)item.text=text;
@@ -171,5 +173,5 @@ export function cycleGeometry(d){
     const shortForward=a!==b&&b.x>=a.x+w&&b.x-(a.x+w)<140&&Math.abs(a.y-b.y)<=h+30;
     return {...e,sourcePoint,targetPoint,sourceAngle,targetAngle,bounds:{right:Math.max(p0[0],p1[0],p2[0],p3[0]),bottom:Math.max(p0[1],p1[1],p2[1],p3[1])},path:`M${p0} C${p1} ${p2} ${p3}`,insertX:mid[0],insertY:mid[1],labelX:mid[0],labelY:shortForward&&!e.sourceAnchor&&!e.targetAnchor&&!e.route?Math.max(12,Math.min(a.y,b.y)-18):mid[1]-20};
   }).filter(Boolean);
-  return {edges,width:Math.max(1000,...laneGeometry(d).map(l=>l.x+l.width+80),...d.nodes.map(n=>n.x+w+220),...edges.map(e=>e.bounds.right+50)),height:Math.max(620,...d.nodes.map(n=>n.y+h+180),...edges.map(e=>e.bounds.bottom+50))};
+  return {edges,width:Math.max(1000,...laneGeometry(d).map(l=>l.x+l.width+80),...d.nodes.map(n=>n.x+w+220),...edges.map(e=>e.bounds.right+50)),height:Math.max(620,...laneGeometry(d).map(l=>l.y+l.height+80),...d.nodes.map(n=>n.y+h+180),...edges.map(e=>e.bounds.bottom+50))};
 }

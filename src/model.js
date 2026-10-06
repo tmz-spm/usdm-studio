@@ -54,7 +54,7 @@ export function validate(doc) {
 export function parseInput(text) {
   const raw=JSON.parse(text.replace(/^\uFEFF/,''));
   const project=raw?.format==='usdm-studio-project';
-  if(project && ![1,2,3,4,5,6].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
+  if(project && ![1,2,3,4,5,6,7].includes(raw.projectVersion)) throw Error('未対応のプロジェクト形式です。');
   const d=project?raw.document:raw;
   // Validate the original, before removing any internal keys.
   if(!check(d)) throw Error((check.errors||[]).map(e=>`${e.instancePath||'/'} ${e.message}`).join('\n'));
